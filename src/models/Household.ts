@@ -41,7 +41,6 @@ const householdSchema = new Schema<IHousehold>({
   created_at: { type: Date, default: Date.now }
 });
 
-// recommended indexes
-householdSchema.index({ "members.user_id": 1 });
+
 
 export const Household = model<IHousehold>('Household', householdSchema);

@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { ENV } from './env.js';
+import '../models/index.js';
 
 const MAX_RETRIES = 5;
 const RETRY_INTERVAL_MS = 5000;

@@ -1,7 +1,7 @@
 import { Elysia } from 'elysia';
 import jwt from 'jsonwebtoken';
 import { ENV } from '../config/env.js';
-import { AppError } from '../shared/AppError.js';
+import { ApplicationError } from '../shared/domain/error.js';
 import { User } from '../models/User.js';
 
 export interface IDecodedToken {
@@ -14,12 +14,12 @@ export const authMiddleware = new Elysia()
   .derive(async ({ headers }) => {
     const authHeader = headers['authorization'];
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new AppError('No autorizado: Token faltante o formato incorrecto', 401, 'UNAUTHORIZED');
+      throw new ApplicationError(401, 'No autorizado: Token faltante o formato incorrecto', 'AUTH_MISSING_TOKEN', 'AUTHENTICATION');
     }
 
     const token = authHeader.split(' ')[1];
     if (!token) {
-      throw new AppError('No autorizado: Token vacío', 401, 'UNAUTHORIZED');
+      throw new ApplicationError(401, 'No autorizado: Token vacío', 'AUTH_MISSING_TOKEN', 'AUTHENTICATION');
     }
 
     try {
@@ -27,7 +27,7 @@ export const authMiddleware = new Elysia()
       
       const user = await User.findById(decoded.userId).lean();
       if (!user) {
-        throw new AppError('Usuario no encontrado', 404, 'USER_NOT_FOUND');
+        throw new ApplicationError(404, 'Usuario no encontrado', 'NOT_FOUND_ERROR', 'NOT_FOUND');
       }
 
       return {
@@ -42,9 +42,9 @@ export const authMiddleware = new Elysia()
         }
       };
     } catch (error: any) {
-      if (error instanceof AppError) {
+      if (error instanceof ApplicationError) {
         throw error;
       }
-      throw new AppError('Token inválido o expirado', 401, 'INVALID_TOKEN');
+      throw new ApplicationError(401, 'Token inválido o expirado', 'AUTH_INVALID_TOKEN', 'AUTHENTICATION');
     }
   });

@@ -1,7 +1,7 @@
 import { Elysia, t } from 'elysia';
-import { ShoppingController } from './shopping.controller.js';
-import { authMiddleware } from '../../middleware/auth.middleware.js';
-import { createListSchema, addItemSchema, toggleItemSchema } from './shopping.schema.js';
+import { ShoppingController } from '../../shopping.controller.js';
+import { authMiddleware } from '../../../../middleware/auth.middleware.js';
+import { createListSchema, addItemSchema, toggleItemSchema } from '../../shopping.schema.js';
 
 export const shoppingRoutes = new Elysia({ prefix: '/shopping' })
   .use(authMiddleware)

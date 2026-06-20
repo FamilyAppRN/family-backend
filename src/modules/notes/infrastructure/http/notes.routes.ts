@@ -1,7 +1,7 @@
 import { Elysia, t } from 'elysia';
-import { NotesController } from './notes.controller.js';
-import { authMiddleware } from '../../middleware/auth.middleware.js';
-import { createNoteSchema, updateNoteSchema } from './notes.schema.js';
+import { NotesController } from '../../notes.controller.js';
+import { authMiddleware } from '../../../../middleware/auth.middleware.js';
+import { createNoteSchema, updateNoteSchema } from '../../notes.schema.js';
 
 export const notesRoutes = new Elysia({ prefix: '/notes' })
   .use(authMiddleware)

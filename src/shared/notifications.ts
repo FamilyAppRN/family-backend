@@ -1,6 +1,7 @@
 import { Expo, ExpoPushMessage } from 'expo-server-sdk';
 import { Household } from '../models/Household.js';
 import { User } from '../models/User.js';
+import logger from './infrastructure/logger.js';
 
 // Initialize the Expo SDK client
 const expo = new Expo();
@@ -33,7 +34,7 @@ export async function sendPushNotifications(payload: NotifyPayload): Promise<voi
       const ticketChunk = await expo.sendPushNotificationsAsync(chunk);
       // In production: process ticketChunk to log failures and prune expired tokens
     } catch (error) {
-      console.error('❌ Error sending push notification chunk:', error);
+      logger.error({ err: error }, '❌ Error sending push notification chunk');
     }
   }
 }

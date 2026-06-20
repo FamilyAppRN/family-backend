@@ -1,12 +1,12 @@
 import { Elysia, t } from 'elysia';
-import { TasksController } from './tasks.controller.js';
-import { authMiddleware } from '../../middleware/auth.middleware.js';
+import { TasksController } from '../../tasks.controller.js';
+import { authMiddleware } from '../../../../middleware/auth.middleware.js';
 import {
   createTaskSchema,
   updateTaskSchema,
   updateTaskStatusSchema,
   claimPointsSchema,
-} from './tasks.schema.js';
+} from '../../tasks.schema.js';
 
 export const tasksRoutes = new Elysia({ prefix: '/tasks' })
   .use(authMiddleware)

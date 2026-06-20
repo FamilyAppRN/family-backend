@@ -1,7 +1,7 @@
 import { Elysia, t } from 'elysia';
-import { HouseholdController } from './household.controller.js';
-import { authMiddleware } from '../../middleware/auth.middleware.js';
-import { createHouseholdSchema, joinHouseholdSchema } from './household.schema.js';
+import { HouseholdController } from '../../household.controller.js';
+import { authMiddleware } from '../../../../middleware/auth.middleware.js';
+import { createHouseholdSchema, joinHouseholdSchema } from '../../household.schema.js';
 
 export const householdRoutes = new Elysia({ prefix: '/households' })
   .use(authMiddleware)

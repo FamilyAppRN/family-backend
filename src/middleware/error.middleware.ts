@@ -1,32 +1,88 @@
 import { Elysia } from 'elysia';
-import { AppError } from '../shared/AppError.js';
+import { ApplicationError, ValidationError } from '../shared/domain/error.js';
+import { randomUUID } from 'crypto';
+import logger from '../shared/infrastructure/logger.js';
 
-export const errorMiddleware = new Elysia()
-  .onError(({ code, error, set }) => {
-    if (error instanceof AppError) {
-      set.status = error.statusCode;
+export const errorMiddleware = new Elysia({ name: 'error-middleware' })
+  .error('ApplicationError', ApplicationError)
+  .onError({ as: 'global' }, ({ code, error, set, request }) => {
+    try {
+      const traceId = request?.headers?.get('x-trace-id') || randomUUID();
+
+      if (code === 'ApplicationError' || error instanceof ApplicationError || (error as any).isOperational) {
+        const appError = error as ApplicationError;
+        const details = appError.name === 'ValidationError' ? appError.details : appError.details;
+        
+        logger.error({ err: appError, traceId, code: appError.code, category: appError.category }, appError.message);
+        
+        set.status = appError.statusCode || 500;
+        return {
+          success: false,
+          error: {
+            code: appError.code,
+            message: appError.message,
+            category: appError.category,
+            status: appError.statusCode || 500,
+            details: details || {},
+            traceId
+          },
+          message: appError.message
+        };
+      }
+
+      if (code === 'VALIDATION') {
+        logger.warn({ err: error, traceId, code: 'VALIDATION_ERROR', category: 'VALIDATION' }, 'Elysia Route Validation Failed');
+        
+        let simplifiedDetails: Record<string, string> = {};
+        const validationErrors = (error as any).all;
+        
+        if (Array.isArray(validationErrors)) {
+            for (const e of validationErrors) {
+                const field = e.path ? e.path.replace(/^[/.]/, '') : 'unknown';
+                if (!simplifiedDetails[field]) {
+                    simplifiedDetails[field] = e.schema?.error || e.message || 'Valor inválido';
+                }
+            }
+        } else {
+            simplifiedDetails = { error: error.message };
+        }
+
+        set.status = 400;
+        return {
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Error de validación en la solicitud',
+            category: 'VALIDATION',
+            status: 400,
+            details: simplifiedDetails,
+            traceId
+          },
+          message: 'Error de validación en la solicitud'
+        };
+      }
+
+      logger.error({ err: error, traceId, code: 'INTERNAL_SERVER_ERROR', category: 'INTERNAL' }, 'Unhandled exception');
+      set.status = 500;
       return {
-        status: 'error',
-        code: error.errorCode,
-        message: error.message,
+        success: false,
+        error: {
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'Algo salió mal en el servidor',
+          category: 'INTERNAL',
+          status: 500,
+          details: {},
+          traceId
+        },
+        message: 'Algo salió mal en el servidor'
+      };
+    } catch (middlewareError) {
+      console.error('Error inside errorMiddleware:', middlewareError);
+      set.status = 500;
+      return {
+        success: false,
+        message: 'Fatal Error',
+        error: { message: 'Fatal Error' }
       };
     }
-
-    if (code === 'VALIDATION') {
-      set.status = 400;
-      return {
-        status: 'error',
-        code: 'VALIDATION_ERROR',
-        message: 'Error de validación en la solicitud',
-        errors: (error as any).all || error.message,
-      };
-    }
-
-    console.error('Unhandled server error:', error);
-    set.status = 500;
-    return {
-      status: 'error',
-      code: 'INTERNAL_SERVER_ERROR',
-      message: 'Algo salió mal en el servidor',
-    };
   });

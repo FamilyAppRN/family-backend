@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  # ==========================================
+  # Backend API (Node.js)
+  # ==========================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: familycollab-backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      # Usa los nombres de los servicios como host
+      - MONGODB_URI=mongodb://mongodb:27017/familycollab
+      - REDIS_URI=redis://redis:6379
+      # JWT Secrets. En un entorno real deberías inyectarlos desde un archivo .env o un gestor de secretos
+      - JWT_SECRET=${JWT_SECRET:-my_super_secret_jwt_key_for_production}
+      - JWT_EXPIRES_IN=15m
+      - REFRESH_TOKEN_EXPIRES_IN=30d
+      - CORS_ORIGIN=*
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - familycollab-network
+
+  # ==========================================
+  # Base de Datos (MongoDB)
+  # ==========================================
+  mongodb:
+    image: mongo:7.0
+    container_name: familycollab-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - familycollab-network
+
+  # ==========================================
+  # Caché & Pub/Sub (Redis)
+  # ==========================================
+  redis:
+    image: redis:7.2-alpine
+    container_name: familycollab-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - familycollab-network
+
+# ==========================================
+# Volúmenes persistentes para los datos
+# ==========================================
+volumes:
+  mongodb_data:
+  redis_data:
+
+# ==========================================
+# Red interna para comunicación entre contenedores
+# ==========================================
+networks:
+  familycollab-network:
+    driver: bridge

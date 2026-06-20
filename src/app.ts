@@ -4,11 +4,13 @@ import { cors } from '@elysiajs/cors';
 import { swagger } from '@elysiajs/swagger';
 import { ENV } from './config/env.js';
 import { errorMiddleware } from './middleware/error.middleware.js';
-import { authRoutes } from './modules/auth/auth.routes.js';
-import { householdRoutes } from './modules/household/household.routes.js';
-import { shoppingRoutes } from './modules/shopping/shopping.routes.js';
-import { tasksRoutes } from './modules/tasks/tasks.routes.js';
-import { notesRoutes } from './modules/notes/notes.routes.js';
+import { authRoutes } from './modules/auth/infrastructure/http/auth.routes.js';
+import { householdRoutes } from './modules/household/infrastructure/http/household.routes.js';
+import { shoppingRoutes } from './modules/shopping/infrastructure/http/shopping.routes.js';
+import { tasksRoutes } from './modules/tasks/infrastructure/http/tasks.routes.js';
+import { notesRoutes } from './modules/notes/infrastructure/http/notes.routes.js';
+import { ApiResponse } from './shared/infrastructure/http/responseFormatter.js';
+import { ApplicationError } from './shared/domain/error.js';
 
 export const app = new Elysia({ adapter: node() })
   // Enable Swagger/OpenAPI documentation at /docs

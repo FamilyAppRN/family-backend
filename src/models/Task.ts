@@ -5,9 +5,9 @@ export interface ITask extends Document {
   household_id: Types.ObjectId;
   title: string;
   description: string | null;
-  status: 'pending' | 'done';
-  assigned_to: Types.ObjectId | null;
-  created_by: Types.ObjectId;
+  status: 'pending' | 'in_progress' | 'completed';
+  assignee_id: Types.ObjectId | null;
+  creator_id: Types.ObjectId;
   due_date: Date | null;
   points: number;
   completed_at: Date | null;
@@ -22,9 +22,9 @@ const taskSchema = new Schema<ITask>({
   household_id: { type: Schema.Types.ObjectId, ref: 'Household', required: true, index: true },
   title: { type: String, required: true },
   description: { type: String, default: null },
-  status: { type: String, enum: ['pending', 'done'], default: 'pending' },
-  assigned_to: { type: Schema.Types.ObjectId, ref: 'User', default: null, index: true },
-  created_by: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  status: { type: String, enum: ['pending', 'in_progress', 'completed'], default: 'pending' },
+  assignee_id: { type: Schema.Types.ObjectId, ref: 'User', default: null, index: true },
+  creator_id: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   due_date: { type: Date, default: null },
   points: { type: Number, default: 0 },
   completed_at: { type: Date, default: null },

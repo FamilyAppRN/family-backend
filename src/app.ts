@@ -1,0 +1,42 @@
+import { Elysia } from 'elysia';
+import { node } from '@elysiajs/node';
+import { cors } from '@elysiajs/cors';
+import { swagger } from '@elysiajs/swagger';
+import { ENV } from './config/env.js';
+import { errorMiddleware } from './middleware/error.middleware.js';
+import { authRoutes } from './modules/auth/auth.routes.js';
+import { householdRoutes } from './modules/household/household.routes.js';
+import { shoppingRoutes } from './modules/shopping/shopping.routes.js';
+import { tasksRoutes } from './modules/tasks/tasks.routes.js';
+import { notesRoutes } from './modules/notes/notes.routes.js';
+
+export const app = new Elysia({ adapter: node() })
+  // Enable Swagger/OpenAPI documentation at /docs
+  .use(swagger({
+    path: '/docs',
+    documentation: {
+      info: {
+        title: 'Asistente Familiar Collab API',
+        version: '1.0.0',
+        description: 'Documentación de la API para el backend de Asistente Familiar Collab',
+      },
+    },
+  }))
+  // Enable CORS
+  .use(cors({
+    origin: ENV.CORS_ORIGIN === '*' ? true : ENV.CORS_ORIGIN,
+    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
+    credentials: true,
+  }))
+  // Enable global error handler
+  .use(errorMiddleware)
+  // Mount API endpoints
+  .group('/api', (api) =>
+    api
+      .use(authRoutes)
+      .use(householdRoutes)
+      .use(shoppingRoutes)
+      .use(tasksRoutes)
+      .use(notesRoutes)
+  );
+export type App = typeof app;

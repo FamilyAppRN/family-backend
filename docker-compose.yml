@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # ==========================================
   # Backend API (Node.js)
@@ -16,7 +14,7 @@ services:
       - NODE_ENV=production
       - PORT=3000
       # Usa los nombres de los servicios como host
-      - MONGODB_URI=mongodb://mongodb:27017/familycollab
+      - MONGODB_URI=TU_MONGO_DB_URI
       - REDIS_URI=redis://redis:6379
       # JWT Secrets. En un entorno real deberías inyectarlos desde un archivo .env o un gestor de secretos
       - JWT_SECRET=${JWT_SECRET:-my_super_secret_jwt_key_for_production}
@@ -24,29 +22,8 @@ services:
       - REFRESH_TOKEN_EXPIRES_IN=30d
       - CORS_ORIGIN=*
     depends_on:
-      mongodb:
-        condition: service_healthy
       redis:
         condition: service_healthy
-    networks:
-      - familycollab-network
-
-  # ==========================================
-  # Base de Datos (MongoDB)
-  # ==========================================
-  mongodb:
-    image: mongo:7.0
-    container_name: familycollab-mongodb
-    restart: unless-stopped
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
-    healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
-      interval: 10s
-      timeout: 5s
-      retries: 5
     networks:
       - familycollab-network
 
@@ -58,7 +35,7 @@ services:
     container_name: familycollab-redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "6380:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -73,7 +50,6 @@ services:
 # Volúmenes persistentes para los datos
 # ==========================================
 volumes:
-  mongodb_data:
   redis_data:
 
 # ==========================================

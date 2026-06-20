@@ -31,16 +31,19 @@ Para instrucciones detalladas sobre cómo crear nuevos módulos o funcionalidade
 ## 📦 Instalación y Configuración Local
 
 1. Clona el repositorio e instala las dependencias:
+
    ```bash
    nvm use # Asegura usar la versión de Node correcta
    npm install
    ```
 
 2. Configura las variables de entorno. Duplica `.env.example` y renómbralo a `.env`:
+
    ```bash
    cp .env.example .env
    ```
-   *(Asegúrate de llenar las credenciales de MongoDB, Redis y configurar tu `JWT_SECRET`).*
+
+   _(Asegúrate de llenar las credenciales de MongoDB, Redis y configurar tu `JWT_SECRET`)._
 
 3. Levanta la aplicación en modo desarrollo (con recarga automática mediante `tsx`):
    ```bash
@@ -52,12 +55,14 @@ Para instrucciones detalladas sobre cómo crear nuevos módulos o funcionalidade
 Si prefieres levantar toda la infraestructura sin instalar servicios en tu máquina (Base de datos, Caché y API), el proyecto está completamente dockerizado.
 
 Solo necesitas ejecutar:
+
 ```bash
 docker-compose up --build -d
 ```
+
 Esto levantará:
+
 - El servidor backend en el puerto `3000`
-- Instancia de MongoDB (puerto `27017`) con volumen persistente
 - Instancia de Redis (puerto `6379`) con volumen persistente
 
 ## 📄 Scripts Disponibles

@@ -4,19 +4,23 @@ export interface INote extends Document {
   _id: Types.ObjectId;
   household_id: Types.ObjectId;
   author_id: Types.ObjectId;
-  body: string;
+  title: string;
+  content: string;
+  color?: string;
   pinned: boolean;
-  expires_at: Date;
   created_at: Date;
+  updated_at: Date;
 }
 
 const noteSchema = new Schema<INote>({
   household_id: { type: Schema.Types.ObjectId, ref: 'Household', required: true, index: true },
   author_id: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-  body: { type: String, required: true, maxlength: 500 },
+  title: { type: String, required: true, maxlength: 100 },
+  content: { type: String, required: true, maxlength: 2000 },
+  color: { type: String, default: '#FFFFFF' },
   pinned: { type: Boolean, default: false },
-  expires_at: { type: Date, required: true, expires: 0 }, // TTL index
-  created_at: { type: Date, default: Date.now }
+}, {
+  timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }
 });
 
 export const Note = model<INote>('Note', noteSchema);

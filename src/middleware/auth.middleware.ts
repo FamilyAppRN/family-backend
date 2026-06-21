@@ -11,7 +11,7 @@ export interface IDecodedToken {
 }
 
 export const authMiddleware = new Elysia()
-  .derive(async ({ headers }) => {
+  .derive({ as: 'global' }, async ({ headers, body }) => {
     const authHeader = headers['authorization'];
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       throw new ApplicationError(401, 'No autorizado: Token faltante o formato incorrecto', 'AUTH_MISSING_TOKEN', 'AUTHENTICATION');
@@ -29,7 +29,6 @@ export const authMiddleware = new Elysia()
       if (!user) {
         throw new ApplicationError(404, 'Usuario no encontrado', 'NOT_FOUND_ERROR', 'NOT_FOUND');
       }
-
       return {
         user: {
           id: user._id.toString(),
@@ -40,7 +39,7 @@ export const authMiddleware = new Elysia()
           push_tokens: user.push_tokens,
           notifications_enabled: user.notifications_enabled,
         }
-      };
+      }
     } catch (error: any) {
       if (error instanceof ApplicationError) {
         throw error;

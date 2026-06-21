@@ -3,18 +3,17 @@ import { NoteEntity } from '../domain/entities/note.entity.js';
 import { NoteRepository } from '../domain/repositories/note.repository.js';
 import { NoteNotFoundError, NoteForbiddenError } from '../domain/errors/note.errors.js';
 import { updateNoteRequestSchema, noteResponseSchema } from './schemas/notes.schemas.js';
-import { Type, Static } from '@sinclair/typebox';
+import { t } from 'elysia';
 
-const InputSchema = Type.Intersect([
-  updateNoteRequestSchema as any,
-  Type.Object({
-    noteId: Type.String(),
-    householdId: Type.String(),
-    userId: Type.String(),
-  }),
-]);
-
-export type UpdateNoteInput = Static<typeof InputSchema>;
+const InputSchema = t.Object({
+  title: t.Optional(t.String({ minLength: 1, maxLength: 100 })),
+  content: t.Optional(t.String({ minLength: 1, maxLength: 2000 })),
+  color: t.Optional(t.String()),
+  pinned: t.Optional(t.Boolean()),
+  noteId: t.String(),
+  householdId: t.String(),
+  userId: t.String(),
+});
 
 export class UpdateNoteUseCase extends UseCase<any, any> {
   protected inputSchema = InputSchema as any;

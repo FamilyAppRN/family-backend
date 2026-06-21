@@ -49,6 +49,13 @@ export class MongooseHouseholdRepository implements HouseholdRepository {
         return this.mapToEntity(household);
     }
 
+    async findByUserId(userId: string): Promise<HouseholdEntity[]> {
+        const households = await Household.find({
+            'members.user_id': userId
+        }).lean();
+        return households.map((doc: any) => this.mapToEntity(doc));
+    }
+
     async update(id: string, data: Partial<Pick<HouseholdEntity, 'name' | 'settings'>>): Promise<HouseholdEntity> {
         const updateDoc: any = {};
         if (data.name !== undefined) updateDoc.name = data.name;

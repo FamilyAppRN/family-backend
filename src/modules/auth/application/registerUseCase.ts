@@ -50,7 +50,6 @@ export class RegisterUseCase extends UseCase<any, any> {
         await this.authRepository.saveRefreshToken(user.id, refreshToken, refreshExpires);
 
         return {
-            user,
             accessToken,
             refreshToken
         };

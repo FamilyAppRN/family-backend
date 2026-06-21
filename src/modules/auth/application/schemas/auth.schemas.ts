@@ -38,11 +38,40 @@ export const userResponseSchema = t.Object({
 });
 
 export const authResponseSchema = t.Object({
-  user: userResponseSchema,
   accessToken: t.String(),
   refreshToken: t.String(),
 });
 
 export const tokenResponseSchema = t.Object({
   accessToken: t.String(),
+});
+
+export const checkEmailRequestSchema = t.Object({
+  email: t.String({ format: 'email', error: 'Email inválido' }),
+});
+
+export const checkEmailResponseSchema = t.Object({
+  exists: t.Boolean(),
+});
+
+export const validateSessionInputSchema = t.Object({
+  userId: t.String(),
+});
+
+export const meProfileInputSchema = t.Object({
+  userId: t.String(),
+});
+
+export const meHouseholdSchema = t.Object({
+  id: t.String(),
+  name: t.String(),
+  role: t.Union([t.Literal('admin'), t.Literal('member')]),
+  is_owner: t.Boolean(),
+  invite_code: t.Optional(t.Union([t.String(), t.Null()])),
+  members_count: t.Number(),
+});
+
+export const meProfileResponseSchema = t.Object({
+  user: userResponseSchema,
+  households: t.Array(meHouseholdSchema),
 });

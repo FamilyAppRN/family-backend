@@ -5,12 +5,18 @@ import { RegisterUseCase } from '../../application/registerUseCase.js';
 import { LoginUseCase } from '../../application/loginUseCase.js';
 import { RefreshTokenUseCase } from '../../application/refreshTokenUseCase.js';
 import { LogoutUseCase } from '../../application/logoutUseCase.js';
+import { CheckEmailUseCase } from '../../application/checkEmailUseCase.js';
+import { ValidateSessionUseCase } from '../../application/validateSessionUseCase.js';
+import { GetMeProfileUseCase } from '../../application/getMeProfileUseCase.js';
+import { GetUserHouseholdsUseCase } from '../../../household/application/useCases/getUserHouseholdsUseCase.js';
 import { MongooseAuthRepository } from '../persistence/MongooseAuthRepository.js';
+import { MongooseHouseholdRepository } from '../../../household/infrastructure/persistence/MongooseHouseholdRepository.js';
 import { 
     registerRequestSchema, 
     loginRequestSchema, 
     refreshTokenRequestSchema, 
-    pushTokenRequestSchema 
+    pushTokenRequestSchema,
+    checkEmailRequestSchema 
 } from '../../application/schemas/auth.schemas.js';
 
 export const authRoutes = new Elysia()
@@ -51,10 +57,32 @@ export const authRoutes = new Elysia()
             }, {
                 body: refreshTokenRequestSchema,
             })
+
+            .post('/check-email', async ({ body, set }) => {
+                const repository = new MongooseAuthRepository();
+                const useCase = new CheckEmailUseCase(repository);
+                const result = await useCase.execute(body);
+                
+                const response = ApiResponse.success(result, "Verificación de email", 200);
+                set.status = response.status;
+                return response.body;
+            }, {
+                body: checkEmailRequestSchema,
+            })
     )
     .group('', (app) =>
         app
             .use(authMiddleware)
+            .get('/auth/session', async (ctx: any) => {
+                const { user, set } = ctx;
+                const repository = new MongooseAuthRepository();
+                const useCase = new ValidateSessionUseCase(repository);
+                const result = await useCase.execute({ userId: user.id });
+                
+                const response = ApiResponse.success(result, "Sesión activa", 200);
+                set.status = response.status;
+                return response.body;
+            })
             .post('/auth/logout', async (ctx: any) => {
                 const { user, body, set } = ctx;
                 const repository = new MongooseAuthRepository();
@@ -65,6 +93,19 @@ export const authRoutes = new Elysia()
                 });
                 
                 const response = ApiResponse.success(result, "Logout exitoso", 200);
+                set.status = response.status;
+                return response.body;
+            })
+
+            .get('/users/me', async (ctx: any) => {
+                const { user, set } = ctx;
+                const authRepository = new MongooseAuthRepository();
+                const householdRepository = new MongooseHouseholdRepository();
+                const getUserHouseholdsUseCase = new GetUserHouseholdsUseCase(householdRepository);
+                const useCase = new GetMeProfileUseCase(authRepository, getUserHouseholdsUseCase);
+                const result = await useCase.execute({ userId: user.id });
+                
+                const response = ApiResponse.success(result, "Perfil del usuario", 200);
                 set.status = response.status;
                 return response.body;
             })

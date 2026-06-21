@@ -57,3 +57,18 @@ export const RemoveMemberInputSchema = t.Object({
   requestingUserId: t.String(), // The user making the request
   targetUserId: t.String()      // The user being removed (can be the same as requestingUser to leave)
 });
+
+export const GetUserHouseholdsInputSchema = t.Object({
+  userId: t.String(),
+});
+
+export const HouseholdSummarySchema = t.Object({
+  id: t.String(),
+  name: t.String(),
+  role: t.Union([t.Literal('admin'), t.Literal('member')]),
+  is_owner: t.Boolean(),
+  invite_code: t.Optional(t.Union([t.String(), t.Null()])),
+  members_count: t.Number(),
+});
+
+export const GetUserHouseholdsOutputSchema = t.Array(HouseholdSummarySchema);

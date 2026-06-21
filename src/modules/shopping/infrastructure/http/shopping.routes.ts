@@ -3,11 +3,11 @@ import { authMiddleware } from '../../../../middleware/auth.middleware.js';
 import { ApiResponse } from '../../../../shared/infrastructure/http/responseFormatter.js';
 import { MongooseShoppingRepository } from '../persistence/MongooseShoppingRepository.js';
 
-import { CreateShoppingListUseCase } from '../../application/useCases/createShoppingList.use-case.js';
-import { GetShoppingListsUseCase } from '../../application/useCases/getShoppingLists.use-case.js';
-import { AddItemToListUseCase } from '../../application/useCases/addItemToList.use-case.js';
-import { ToggleItemStatusUseCase } from '../../application/useCases/toggleItemStatus.use-case.js';
-import { DeleteShoppingListUseCase } from '../../application/useCases/deleteShoppingList.use-case.js';
+import { CreateShoppingListUseCase } from '../../application/useCases/createShoppingListUseCase.js';
+import { GetShoppingListsUseCase } from '../../application/useCases/getShoppingListsUseCase.js';
+import { AddItemToListUseCase } from '../../application/useCases/addItemToListUseCase.js';
+import { ToggleItemStatusUseCase } from '../../application/useCases/toggleItemStatusUseCase.js';
+import { DeleteShoppingListUseCase } from '../../application/useCases/deleteShoppingListUseCase.js';
 
 const shoppingRepository = new MongooseShoppingRepository();
 

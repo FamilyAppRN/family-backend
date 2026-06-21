@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guía de Integración Backend | React Native</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --bg-gradient-start: #0f172a;
+            --bg-gradient-end: #1e1b4b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --accent-green: #10b981;
+            --accent-orange: #f59e0b;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end));
+            background-attachment: fixed;
+            color: var(--text-main);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 60px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+        }
+
+        .card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: fadeInUp 0.8s ease-out both;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .card:nth-child(1) { animation-delay: 0.1s; }
+        .card:nth-child(2) { animation-delay: 0.2s; }
+        .card:nth-child(3) { animation-delay: 0.3s; }
+
+        h2 {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.8rem;
+            margin-top: 0;
+            border-bottom: 1px solid var(--glass-border);
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        h3 {
+            color: #818cf8;
+            font-size: 1.3rem;
+            margin-top: 30px;
+        }
+
+        p {
+            color: var(--text-muted);
+            font-size: 1.05rem;
+        }
+
+        .badge {
+            background: rgba(99, 102, 241, 0.2);
+            color: #818cf8;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9em;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+
+        .endpoint {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--glass-border);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-family: 'Fira Code', monospace;
+        }
+
+        .method {
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+
+        .method.post { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); }
+        .method.get { background: rgba(56, 189, 248, 0.2); color: #38bdf8; }
+
+        pre {
+            background: #0f172a !important;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            border: 1px solid var(--glass-border);
+            margin: 15px 0;
+        }
+
+        code {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            color: #e2e8f0;
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: flex;
+            gap: 15px;
+            align-items: flex-start;
+        }
+
+        .alert-tip {
+            background: rgba(16, 185, 129, 0.1);
+            border-left: 4px solid var(--accent-green);
+        }
+
+        .alert-important {
+            background: rgba(245, 158, 11, 0.1);
+            border-left: 4px solid var(--accent-orange);
+        }
+
+        .alert-icon {
+            font-size: 1.5rem;
+            line-height: 1;
+        }
+
+        .alert-content strong {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--text-main);
+        }
+
+        ul.flow-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        ul.flow-list > li {
+            position: relative;
+            padding-left: 30px;
+            margin-bottom: 25px;
+        }
+
+        ul.flow-list > li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 6px;
+            width: 12px;
+            height: 12px;
+            background: var(--primary);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--primary);
+        }
+
+        ul.flow-list > li::after {
+            content: '';
+            position: absolute;
+            left: 5px;
+            top: 25px;
+            width: 2px;
+            height: calc(100% - 5px);
+            background: rgba(99, 102, 241, 0.3);
+        }
+
+        ul.flow-list > li:last-child::after {
+            display: none;
+        }
+
+        ul.flow-list ul {
+            list-style: circle;
+            color: var(--text-muted);
+            margin-top: 10px;
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .interactive-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            margin-top: 15px;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .interactive-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.4);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Guía de Integración Backend</h1>
+            <div class="subtitle">Flujo de Autenticación y Sesión para React Native</div>
+        </header>
+
+        <section class="card">
+            <h2>🔍 1. Explorando la API (Swagger)</h2>
+            <p>Para visualizar todos los endpoints, schemas, y probar la API de forma visual, el backend tiene integrado <strong>Swagger</strong> generado automáticamente mediante Elysia.</p>
+            <p><strong>Cómo acceder:</strong></p>
+            <ol style="color: var(--text-muted)">
+                <li>Levanta el servidor backend de forma local: <span class="badge">npm run dev</span></li>
+                <li>Abre la interfaz interactiva en tu navegador:</li>
+            </ol>
+            <a href="http://localhost:3000/docs" target="_blank" class="interactive-btn">Abrir Swagger Docs 🚀</a>
+        </section>
+
+        <section class="card">
+            <h2>🔐 2. Flujo de Autenticación</h2>
+
+            <h3>A. Paso Previo: ¿Login o Registro?</h3>
+            <p>Para evitar preguntarle al usuario si quiere registrarse o iniciar sesión, puedes usar este endpoint:</p>
+            
+            <div class="endpoint">
+                <span class="method post">POST</span>
+                <span>/api/auth/check-email</span>
+            </div>
+            <pre><code>// Body Request
+{ "email": "usuario@ejemplo.com" }
+
+// Response
+{
+  "success": true,
+  "data": {
+    "exists": true // true -> Login | false -> Registro
+  }
+}</code></pre>
+
+            <h3>B. Login y Registro (Optimizados)</h3>
+            <p>Para mantener la carga útil ligera y segura, estos endpoints ahora <strong>solo devuelven tokens</strong>, y NO incluyen la información del usuario.</p>
+            
+            <div class="endpoint">
+                <span class="method post">POST</span>
+                <span>/api/auth/login</span> <span style="color:#64748b; margin:0 10px;">y</span> <span class="method post">POST</span> <span>/api/auth/register</span>
+            </div>
+            
+            <pre><code>// Response
+{
+  "success": true,
+  "data": {
+    "accessToken": "eyJhbG...",
+    "refreshToken": "eyJhbG..."
+  }
+}</code></pre>
+
+            <div class="alert alert-tip">
+                <div class="alert-icon">💡</div>
+                <div class="alert-content">
+                    <strong>Almacenamiento Seguro</strong>
+                    Debes guardar el accessToken y refreshToken en el almacenamiento seguro del dispositivo (ej. SecureStore en Expo).
+                </div>
+            </div>
+
+            <h3>C. Recuperando el Perfil y los Hogares</h3>
+            <p>Una vez iniciada la sesión, <strong>debes llamar a este nuevo endpoint</strong> para obtener toda la información que necesita la UI inicial:</p>
+
+            <div class="endpoint">
+                <span class="method get">GET</span>
+                <span>/api/users/me</span>
+            </div>
+            <p><span class="badge">Headers: Authorization: Bearer {accessToken}</span></p>
+
+            <pre><code>// Response
+{
+  "success": true,
+  "data": {
+    "user": {
+      "id": "6a381f...",
+      "email": "usuario@ejemplo.com",
+      "name": "Elias Duarte",
+      "plan": "free"
+    },
+    "households": [
+      {
+        "id": "abc123",
+        "name": "Mi Hogar",
+        "role": "admin",
+        "is_owner": true,
+        "invite_code": "XYZ789", 
+        "members_count": 3
+      }
+    ]
+  }
+}</code></pre>
+
+            <div class="alert alert-important">
+                <div class="alert-icon">⚠️</div>
+                <div class="alert-content">
+                    <strong>Lógica de Redirección basada en Households</strong>
+                    <ul>
+                        <li style="margin-top: 5px;">Si <code>households</code> está vacío (<code>[]</code>) → Llevar al <strong>Onboarding de Hogares</strong>.</li>
+                        <li>Si <code>is_owner</code> es <code>true</code> → Mostrar el botón "Compartir Código" con <code>invite_code</code>.</li>
+                        <li>Si <code>is_owner</code> es <code>false</code> → <code>invite_code</code> vendrá como <code>null</code>.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>🚦 3. Resumen del Flujo en la App</h2>
+            
+            <ul class="flow-list">
+                <li>
+                    <strong style="color: white; font-size: 1.1rem;">App Arranca</strong>
+                    <p style="margin: 5px 0;">¿Hay token guardado?</p>
+                    <ul>
+                        <li><strong>SÍ:</strong> Llama a <span class="badge">GET /api/users/me</span>. Si 200 OK -> Home. Si 401 -> Intenta Refresh -> Si falla -> Ingresar Email.</li>
+                        <li><strong>NO:</strong> Ve a pantalla Ingresar Email.</li>
+                    </ul>
+                </li>
+                <li>
+                    <strong style="color: white; font-size: 1.1rem;">Pantalla Ingresar Email</strong>
+                    <p style="margin: 5px 0;">Llama a <span class="badge">POST /api/auth/check-email</span></p>
+                    <ul>
+                        <li>Si <code>exists: true</code> -> Solicitar Contraseña (Login)</li>
+                        <li>Si <code>exists: false</code> -> Completar Datos (Registro)</li>
+                    </ul>
+                </li>
+                <li>
+                    <strong style="color: white; font-size: 1.1rem;">Al loguearse / registrarse</strong>
+                    <ul>
+                        <li>Guarda tokens en SecureStore.</li>
+                        <li>Llama a <span class="badge">GET /api/users/me</span>.</li>
+                        <li>Evalúa hogares: ¿Vacío? -> Onboarding. ¿Lleno? -> Home.</li>
+                    </ul>
+                </li>
+            </ul>
+        </section>
+    </div>
+
+</body>
+</html>

@@ -4,7 +4,7 @@ import { connectRedis } from './config/redis.js';
 import { initSocket } from './config/socket.js';
 import { registerSocketEvents } from './sockets/index.js';
 import { ENV } from './config/env.js';
-import { Server as HttpServer } from 'http';
+import { createServer } from 'node:http';
 
 async function bootstrap() {
   try {
@@ -12,20 +12,17 @@ async function bootstrap() {
     await connectDB();
     connectRedis();
 
-    // 2. Start Elysia Server using the Node.js adapter
-    app.listen(ENV.PORT, (server: any) => {
-      console.log(`🦊 Elysia server running on Node.js at http://localhost:${ENV.PORT}`);
+    // 2. Create the Node HTTP server and pass Elysia's handle directly
+    // (As suggested by the Elysia AI agent)
+    const httpServer = createServer(app.handle as any);
 
-      const nodeServer = server?.node?.server;
-      if (!nodeServer) {
-        console.error('❌ Failed to retrieve the underlying Node HTTP Server.');
-        process.exit(1);
-      }
+    // 3. Attach socket.io
+    const io = initSocket(httpServer as any);
+    registerSocketEvents(io);
 
-      // 3. Initialize Socket.IO, passing the underlying HTTP server instance
-      const io = initSocket(nodeServer as unknown as HttpServer);
-      registerSocketEvents(io);
-      console.log('✅ Socket.IO events registered successfully.');
+    // 4. Start listening
+    httpServer.listen(ENV.PORT, () => {
+      console.log(`🚀 Servidor HTTP + socket.io escuchando en http://localhost:${ENV.PORT}`);
     });
 
   } catch (error) {

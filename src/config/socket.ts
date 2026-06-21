@@ -13,7 +13,7 @@ export function initSocket(server: HttpServer): SocketServer {
   console.log('Initializing Socket.IO...');
   io = new SocketServer(server, {
     cors: {
-      origin: ENV.CORS_ORIGIN,
+      origin: ENV.CORS_ORIGIN === '*' ? true : ENV.CORS_ORIGIN,
       methods: ['GET', 'POST', 'PATCH', 'DELETE'],
       credentials: true,
     },

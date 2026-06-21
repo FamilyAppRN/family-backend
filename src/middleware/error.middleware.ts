@@ -62,6 +62,23 @@ export const errorMiddleware = new Elysia({ name: 'error-middleware' })
         };
       }
 
+      if (code === 'NOT_FOUND') {
+        // Do not log NOT_FOUND as an error to avoid spamming the console with Socket.IO polling requests
+        set.status = 404;
+        return {
+          success: false,
+          error: {
+            code: 'NOT_FOUND',
+            message: 'Ruta no encontrada',
+            category: 'NOT_FOUND',
+            status: 404,
+            details: {},
+            traceId
+          },
+          message: 'Ruta no encontrada'
+        };
+      }
+
       logger.error({ err: error, traceId, code: 'INTERNAL_SERVER_ERROR', category: 'INTERNAL' }, 'Unhandled exception');
       set.status = 500;
       return {

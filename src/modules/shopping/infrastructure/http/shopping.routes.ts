@@ -8,6 +8,7 @@ import { GetShoppingListsUseCase } from '../../application/useCases/getShoppingL
 import { AddItemToListUseCase } from '../../application/useCases/addItemToListUseCase.js';
 import { ToggleItemStatusUseCase } from '../../application/useCases/toggleItemStatusUseCase.js';
 import { DeleteShoppingListUseCase } from '../../application/useCases/deleteShoppingListUseCase.js';
+import { UpdateShoppingListUseCase } from '../../application/useCases/updateShoppingListUseCase.js';
 
 const shoppingRepository = new MongooseShoppingRepository();
 
@@ -16,6 +17,7 @@ const getShoppingListsUseCase = new GetShoppingListsUseCase(shoppingRepository);
 const addItemToListUseCase = new AddItemToListUseCase(shoppingRepository);
 const toggleItemStatusUseCase = new ToggleItemStatusUseCase(shoppingRepository);
 const deleteShoppingListUseCase = new DeleteShoppingListUseCase(shoppingRepository);
+const updateShoppingListUseCase = new UpdateShoppingListUseCase(shoppingRepository);
 
 export const shoppingRoutes = new Elysia({ prefix: '/shopping' })
   .use(authMiddleware)
@@ -36,14 +38,19 @@ export const shoppingRoutes = new Elysia({ prefix: '/shopping' })
       name: t.String()
     })
   })
-  .get('/:householdId', async ({ params, set }: any) => {
+  .get('/:householdId', async ({ params, query, set }: any) => {
     const result = await getShoppingListsUseCase.execute({
-      household_id: params.householdId
+      household_id: params.householdId,
+      status: query?.status
     });
 
     const response = ApiResponse.success(result, "Shopping lists retrieved", 200);
     set.status = response.status;
     return response.body;
+  }, {
+    query: t.Object({
+      status: t.Optional(t.Union([t.Literal('active'), t.Literal('archived')]))
+    })
   })
   .post('/:listId/items', async ({ params, body, user, set }: any) => {
     const { name, quantity } = body as { name: string; quantity: number; };
@@ -63,12 +70,13 @@ export const shoppingRoutes = new Elysia({ prefix: '/shopping' })
       quantity: t.Number({ minimum: 1, default: 1 })
     })
   })
-  .patch('/:listId/items/:itemId', async ({ params, body, set }: any) => {
+  .patch('/:listId/items/:itemId', async ({ params, body, user, set }: any) => {
     const { is_completed } = body as { is_completed: boolean; };
     const result = await toggleItemStatusUseCase.execute({
       list_id: params.listId,
       item_id: params.itemId,
-      is_completed
+      is_completed,
+      userId: user.id
     });
 
     const response = ApiResponse.success(result, "Item status toggled", 200);
@@ -77,6 +85,23 @@ export const shoppingRoutes = new Elysia({ prefix: '/shopping' })
   }, {
     body: t.Object({
       is_completed: t.Boolean()
+    })
+  })
+  .patch('/:listId', async ({ params, body, set }: any) => {
+    const { name, status } = body as { name?: string; status?: 'active' | 'archived'; };
+    const result = await updateShoppingListUseCase.execute({
+      list_id: params.listId,
+      name,
+      status
+    });
+
+    const response = ApiResponse.success(result, "Shopping list updated", 200);
+    set.status = response.status;
+    return response.body;
+  }, {
+    body: t.Object({
+      name: t.Optional(t.String()),
+      status: t.Optional(t.Union([t.Literal('active'), t.Literal('archived')]))
     })
   })
   .delete('/:listId', async ({ params, set }: any) => {

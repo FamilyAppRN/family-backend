@@ -12,7 +12,8 @@ export class MongooseShoppingRepository implements ShoppingRepository {
       name: item.name,
       quantity: item.qty,
       is_completed: item.checked,
-      added_by: item.added_by.toString()
+      added_by: item.added_by.toString(),
+      checked_by: item.checked_by ? item.checked_by.toString() : null
     };
   }
 
@@ -21,6 +22,7 @@ export class MongooseShoppingRepository implements ShoppingRepository {
       id: list._id.toString(),
       household_id: list.household_id.toString(),
       name: list.name,
+      status: (list.status || 'active') as 'active' | 'archived',
       items: list.items.map(this.mapItemToEntity.bind(this)),
       created_by: list.created_by.toString(),
       created_at: list.created_at
@@ -37,11 +39,16 @@ export class MongooseShoppingRepository implements ShoppingRepository {
     return this.mapListToEntity(doc);
   }
 
-  async getListsByHousehold(householdId: string): Promise<ShoppingListEntity[]> {
-    const docs = await ShoppingList.find({
-      household_id: new Types.ObjectId(householdId),
-      status: 'active'
-    }).lean();
+  async getListsByHousehold(householdId: string, status?: 'active' | 'archived'): Promise<ShoppingListEntity[]> {
+    const query: any = {
+      household_id: new Types.ObjectId(householdId)
+    };
+    if (status) {
+      query.status = status;
+    } else {
+      query.status = 'active'; // Default to active if status is not specified
+    }
+    const docs = await ShoppingList.find(query).lean();
     return docs.map((doc: any) => this.mapListToEntity(doc));
   }
 
@@ -71,7 +78,7 @@ export class MongooseShoppingRepository implements ShoppingRepository {
     return this.mapListToEntity(doc);
   }
 
-  async toggleItemStatus(listId: string, itemId: string, isCompleted: boolean): Promise<ShoppingListEntity> {
+  async toggleItemStatus(listId: string, itemId: string, isCompleted: boolean, userId: string): Promise<ShoppingListEntity> {
     const doc = await ShoppingList.findOneAndUpdate(
       {
         _id: new Types.ObjectId(listId),
@@ -81,7 +88,7 @@ export class MongooseShoppingRepository implements ShoppingRepository {
       {
         $set: {
           'items.$.checked': isCompleted,
-          'items.$.checked_by': isCompleted ? null : null // Add logic for checked_by if needed later
+          'items.$.checked_by': isCompleted ? new Types.ObjectId(userId) : null
         }
       },
       { new: true }
@@ -96,6 +103,16 @@ export class MongooseShoppingRepository implements ShoppingRepository {
 
     // Cache Invalidation Note: Invalidate/update cached lists for doc.household_id here.
 
+    return this.mapListToEntity(doc);
+  }
+
+  async updateList(listId: string, data: Partial<{ name: string; status: 'active' | 'archived' }>): Promise<ShoppingListEntity> {
+    const doc = await ShoppingList.findByIdAndUpdate(
+      listId,
+      { $set: data },
+      { new: true }
+    );
+    if (!doc) throw new ListNotFoundError();
     return this.mapListToEntity(doc);
   }
 

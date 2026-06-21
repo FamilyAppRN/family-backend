@@ -17,7 +17,8 @@ export class ToggleItemStatusUseCase extends UseCase<TInput, TShoppingList> {
         return await this.shoppingRepository.toggleItemStatus(
             data.list_id,
             data.item_id,
-            data.is_completed
+            data.is_completed,
+            data.userId
         );
     }
 }

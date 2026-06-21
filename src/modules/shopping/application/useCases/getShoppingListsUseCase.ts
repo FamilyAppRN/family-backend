@@ -14,6 +14,6 @@ export class GetShoppingListsUseCase extends UseCase<TInput, TShoppingList[]> {
     }
 
     protected async implementation(data: TInput): Promise<TShoppingList[]> {
-        return await this.shoppingRepository.getListsByHousehold(data.household_id);
+        return await this.shoppingRepository.getListsByHousehold(data.household_id, data.status);
     }
 }

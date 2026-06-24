@@ -10,19 +10,21 @@ async function bootstrap() {
   try {
     // 1. Connect databases
     await connectDB();
-    connectRedis();
+    // connectRedis();
 
-    // 2. Create the Node HTTP server and pass Elysia's handle directly
-    // (As suggested by the Elysia AI agent)
-    const httpServer = createServer(app.handle as any);
+    // 2. Start Elysia on the primary port
+    app.listen(ENV.PORT, () => {
+      console.log(`🦊 Elysia API server running on http://localhost:${ENV.PORT}`);
+    });
 
-    // 3. Attach socket.io
-    const io = initSocket(httpServer as any);
+    // 3. Create a separate Node HTTP server for Socket.IO on port 5000
+    const socketPort = 5000;
+    const socketHttpServer = createServer();
+    const io = initSocket(socketHttpServer as any);
     registerSocketEvents(io);
 
-    // 4. Start listening
-    httpServer.listen(ENV.PORT, () => {
-      console.log(`🚀 Servidor HTTP + socket.io escuchando en http://localhost:${ENV.PORT}`);
+    socketHttpServer.listen(socketPort, () => {
+      console.log(`🔌 Socket.IO server running on http://localhost:${socketPort}`);
     });
 
   } catch (error) {

@@ -32,6 +32,13 @@ export const app = new Elysia({ adapter: node() })
   }))
   // Enable global error handler
   .use(errorMiddleware)
+  // Healthcheck endpoint
+  .get('/health', () => ({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    service: 'family-collab-backend'
+  }))
   // Mount API endpoints
   .group('/api', (api) =>
     api

@@ -33,7 +33,7 @@ export const app = new Elysia({ adapter: node() })
   // Enable global error handler
   .use(errorMiddleware)
   // Healthcheck endpoint
-  .get('/health', () => ({
+  .get('/', () => ({
     status: 'ok',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),

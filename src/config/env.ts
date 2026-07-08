@@ -6,7 +6,7 @@ dotenv.config();
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  PORT: z.coerce.number().default(3000),
+  PORT: z.coerce.number().default(10000),
   MONGODB_URI: z.string().url(),
   REDIS_URI: z.string().url(),
   FIREBASE_API_KEY: z.string().min(1, 'FIREBASE_API_KEY is required'),

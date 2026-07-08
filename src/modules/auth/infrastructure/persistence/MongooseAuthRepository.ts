@@ -1,16 +1,14 @@
 import { AuthRepository } from '../../domain/repositories/auth.repository.js';
 import { UserEntity } from '../../domain/entities/auth.entity.js';
 import { User } from '../../../../models/User.js';
-import { RefreshToken } from '../../../../models/RefreshToken.js';
 
 export class MongooseAuthRepository implements AuthRepository {
     private mapToEntity(doc: any): UserEntity {
         return {
             id: doc._id.toString(),
+            firebase_uid: doc.firebase_uid,
             email: doc.email,
             name: doc.name,
-            password_hash: doc.password_hash,
-            password_salt_rounds: doc.password_salt_rounds || 12,
             plan: doc.plan,
             plan_expires_at: doc.plan_expires_at,
             push_tokens: doc.push_tokens || [],
@@ -27,6 +25,11 @@ export class MongooseAuthRepository implements AuthRepository {
 
     async findById(id: string): Promise<UserEntity | null> {
         const user = await User.findById(id).lean();
+        return user ? this.mapToEntity(user) : null;
+    }
+
+    async findByFirebaseUid(uid: string): Promise<UserEntity | null> {
+        const user = await User.findOne({ firebase_uid: uid }).lean();
         return user ? this.mapToEntity(user) : null;
     }
 
@@ -51,26 +54,5 @@ export class MongooseAuthRepository implements AuthRepository {
         await User.findByIdAndUpdate(userId, {
             $addToSet: { push_tokens: { token, device_label: 'default', registered_at: new Date() } } as any
         });
-    }
-
-    async saveRefreshToken(userId: string, token: string, expiresAt: Date, deviceInfo?: string): Promise<void> {
-        await RefreshToken.create({
-            user_id: userId,
-            token,
-            expires_at: expiresAt,
-            device_info: deviceInfo || 'unknown'
-        });
-    }
-
-    async findRefreshToken(token: string): Promise<any | null> {
-        return await RefreshToken.findOne({ token }).lean();
-    }
-
-    async deleteRefreshToken(token: string): Promise<void> {
-        await RefreshToken.deleteOne({ token });
-    }
-
-    async deleteAllUserRefreshTokens(userId: string): Promise<void> {
-        await RefreshToken.deleteMany({ user_id: userId });
     }
 }

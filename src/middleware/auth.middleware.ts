@@ -1,14 +1,7 @@
 import { Elysia } from 'elysia';
-import jwt from 'jsonwebtoken';
-import { ENV } from '../config/env.js';
+import admin from 'firebase-admin';
 import { ApplicationError } from '../shared/domain/error.js';
 import { User } from '../models/User.js';
-
-export interface IDecodedToken {
-  userId: string;
-  email: string;
-  plan: string;
-}
 
 export const authMiddleware = new Elysia()
   .derive({ as: 'global' }, async ({ headers, body }) => {
@@ -23,15 +16,17 @@ export const authMiddleware = new Elysia()
     }
 
     try {
-      const decoded = jwt.verify(token, ENV.JWT_SECRET) as IDecodedToken;
+      // Verify token with Firebase Admin SDK
+      const decoded = await admin.auth().verifyIdToken(token);
       
-      const user = await User.findById(decoded.userId).lean();
+      const user = await User.findOne({ firebase_uid: decoded.uid }).lean();
       if (!user) {
         throw new ApplicationError(404, 'Usuario no encontrado', 'NOT_FOUND_ERROR', 'NOT_FOUND');
       }
       return {
         user: {
           id: user._id.toString(),
+          firebase_uid: user.firebase_uid,
           name: user.name,
           email: user.email,
           plan: user.plan,

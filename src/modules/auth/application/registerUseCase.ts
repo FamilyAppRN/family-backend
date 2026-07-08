@@ -2,9 +2,7 @@ import { UseCase } from '../../../shared/application/useCase.js';
 import { AuthRepository } from '../domain/repositories/auth.repository.js';
 import { EmailAlreadyExistsError } from '../domain/errors/auth.errors.js';
 import { registerRequestSchema, authResponseSchema } from './schemas/auth.schemas.js';
-import { PasswordService } from '../domain/services/password.service.js';
-import jwt from 'jsonwebtoken';
-import { ENV } from '../../../config/env.js';
+import { FirebaseAuthService } from '../domain/services/firebaseAuth.service.js';
 
 export class RegisterUseCase extends UseCase<any, any> {
     protected inputSchema = registerRequestSchema;
@@ -20,38 +18,45 @@ export class RegisterUseCase extends UseCase<any, any> {
             throw new EmailAlreadyExistsError();
         }
 
-        // Fase 1: SHA-256(email:password) → Fase 2: bcrypt(derivado, saltRounds)
-        // Esto garantiza que la misma contraseña en cuentas distintas genera hashes distintos
-        const { hash, saltRounds } = await PasswordService.hash(data.email, data.password);
-        
-        const user = await this.authRepository.create({
-            email: data.email,
-            password_hash: hash,
-            password_salt_rounds: saltRounds,
-            name: data.name,
-            plan: 'free',
-            notifications_enabled: true
-        });
+        let firebaseUid: string | null = null;
+        try {
+            // 1. Create user in Firebase Auth
+            firebaseUid = await FirebaseAuthService.createUser(data.email, data.password, data.name);
+            
+            // 2. Create profile in MongoDB
+            const user = await this.authRepository.create({
+                firebase_uid: firebaseUid,
+                email: data.email,
+                name: data.name,
+                plan: 'free',
+                notifications_enabled: true
+            });
 
-        const accessToken = jwt.sign(
-            { userId: user.id, email: user.email, plan: user.plan },
-            ENV.JWT_SECRET,
-            { expiresIn: ENV.JWT_EXPIRES_IN as any }
-        );
+            // 3. Login to get tokens
+            const credentials = await FirebaseAuthService.signIn(data.email, data.password);
 
-        const refreshToken = jwt.sign(
-            { userId: user.id },
-            ENV.JWT_SECRET,
-            { expiresIn: ENV.REFRESH_TOKEN_EXPIRES_IN as any }
-        );
-
-        const refreshExpires = new Date();
-        refreshExpires.setDate(refreshExpires.getDate() + 30);
-        await this.authRepository.saveRefreshToken(user.id, refreshToken, refreshExpires);
-
-        return {
-            accessToken,
-            refreshToken
-        };
+            return {
+                accessToken: credentials.idToken,
+                refreshToken: credentials.refreshToken,
+                user: {
+                    id: user.id,
+                    firebase_uid: user.firebase_uid,
+                    email: user.email,
+                    name: user.name,
+                    plan: user.plan,
+                    plan_expires_at: user.plan_expires_at,
+                    push_tokens: user.push_tokens,
+                    notifications_enabled: user.notifications_enabled,
+                    created_at: user.created_at,
+                    updated_at: user.updated_at
+                }
+            };
+        } catch (error) {
+            // Rollback Firebase user if DB creation fails
+            if (firebaseUid) {
+                await FirebaseAuthService.deleteUser(firebaseUid);
+            }
+            throw error;
+        }
     }
 }

@@ -92,3 +92,6 @@ coverage/
 # =========================
 .docker/
 docker-compose.override.yml
+
+
+gestia-530cc-firebase-adminsdk-fbsvc-469a38db8c.json

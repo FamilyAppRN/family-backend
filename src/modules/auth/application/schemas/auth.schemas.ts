@@ -28,6 +28,7 @@ export const pushTokenRequestSchema = t.Object({
 
 export const userResponseSchema = t.Object({
   id: t.String(),
+  firebase_uid: t.String(),
   email: t.String(),
   name: t.String(),
   plan: t.String(),
@@ -40,10 +41,12 @@ export const userResponseSchema = t.Object({
 export const authResponseSchema = t.Object({
   accessToken: t.String(),
   refreshToken: t.String(),
+  user: userResponseSchema,
 });
 
 export const tokenResponseSchema = t.Object({
   accessToken: t.String(),
+  refreshToken: t.Optional(t.String()),
 });
 
 export const checkEmailRequestSchema = t.Object({

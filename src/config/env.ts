@@ -9,9 +9,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(3000),
   MONGODB_URI: z.string().url(),
   REDIS_URI: z.string().url(),
-  JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters long'),
-  JWT_EXPIRES_IN: z.string().default('15m'),
-  REFRESH_TOKEN_EXPIRES_IN: z.string().default('30d'),
+  FIREBASE_API_KEY: z.string().min(1, 'FIREBASE_API_KEY is required'),
   CORS_ORIGIN: z.string().default('*'),
 });
 

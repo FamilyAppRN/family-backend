@@ -1,9 +1,8 @@
 export interface UserEntity {
   id: string;
+  firebase_uid: string;
   email: string;
   name: string;
-  password_hash?: string;
-  password_salt_rounds?: number;
   plan: 'free' | 'premium';
   plan_expires_at?: Date;
   push_tokens: any[];

@@ -17,8 +17,8 @@ async function bootstrap() {
     initFirebase();
 
     // 2. Start Elysia on the primary port
-    app.listen(ENV.PORT, () => {
-      console.log(`🦊 Elysia API server running on http://localhost:${ENV.PORT}`);
+    app.listen({ port: ENV.PORT, hostname: '0.0.0.0' }, () => {
+      console.log(`🦊 Elysia API server running on http://0.0.0.0:${ENV.PORT}`);
     });
 
     // 3. Create a separate Node HTTP server for Socket.IO on port 5000

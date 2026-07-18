@@ -18,6 +18,7 @@ import {
     pushTokenRequestSchema,
     checkEmailRequestSchema 
 } from '../../application/schemas/auth.schemas.js';
+import { swaggerSuccess, swaggerError, standardAuthErrors, standardValidationErrors, customAuthErrors } from '../../../../shared/infrastructure/http/swaggerResponses.js';
 
 export const authRoutes = new Elysia({ detail: { tags: ['Auth'] } })
     .group('/auth', (app) =>
@@ -32,7 +33,15 @@ export const authRoutes = new Elysia({ detail: { tags: ['Auth'] } })
                 return response.body;
             }, {
                 body: registerRequestSchema,
-                detail: { summary: 'Registrar un nuevo usuario' }
+                detail: { 
+                    summary: 'Registrar un nuevo usuario',
+                    responses: {
+                        '201': swaggerSuccess("Usuario registrado exitosamente", { user: { id: "user-123", name: "John", email: "john@test.com" }, accessToken: "ey...", refreshToken: "ey..." }),
+                        ...standardValidationErrors,
+                        '400': customAuthErrors.weakPassword,
+                        '409': customAuthErrors.emailExists
+                    }
+                }
             })
 
             .post('/login', async ({ body, set }) => {
@@ -45,7 +54,16 @@ export const authRoutes = new Elysia({ detail: { tags: ['Auth'] } })
                 return response.body;
             }, {
                 body: loginRequestSchema,
-                detail: { summary: 'Iniciar sesión' }
+                detail: { 
+                    summary: 'Iniciar sesión',
+                    responses: {
+                        '200': swaggerSuccess("Login exitoso", { user: { id: "user-123", name: "John", email: "john@test.com" }, accessToken: "ey...", refreshToken: "ey..." }),
+                        ...standardValidationErrors,
+                        '401': customAuthErrors.invalidCredentials,
+                        '403': customAuthErrors.userDisabled,
+                        '404': customAuthErrors.userNotFound
+                    }
+                }
             })
 
             .post('/refresh', async ({ body, set }) => {
@@ -58,7 +76,14 @@ export const authRoutes = new Elysia({ detail: { tags: ['Auth'] } })
                 return response.body;
             }, {
                 body: refreshTokenRequestSchema,
-                detail: { summary: 'Refrescar token de acceso' }
+                detail: { 
+                    summary: 'Refrescar token de acceso',
+                    responses: {
+                        '200': swaggerSuccess("Token renovado exitosamente", { accessToken: "ey...", refreshToken: "ey..." }),
+                        ...standardValidationErrors,
+                        ...standardAuthErrors
+                    }
+                }
             })
 
             .post('/check-email', async ({ body, set }) => {
@@ -71,7 +96,13 @@ export const authRoutes = new Elysia({ detail: { tags: ['Auth'] } })
                 return response.body;
             }, {
                 body: checkEmailRequestSchema,
-                detail: { summary: 'Verificar disponibilidad de email' }
+                detail: { 
+                    summary: 'Verificar disponibilidad de email',
+                    responses: {
+                        '200': swaggerSuccess("Verificación de email", { available: true }),
+                        ...standardValidationErrors
+                    }
+                }
             })
     )
     .group('', (app) =>
@@ -87,7 +118,13 @@ export const authRoutes = new Elysia({ detail: { tags: ['Auth'] } })
                 set.status = response.status;
                 return response.body;
             }, {
-                detail: { summary: 'Validar sesión actual' }
+                detail: { 
+                    summary: 'Validar sesión actual',
+                    responses: {
+                        '200': swaggerSuccess("Sesión activa", null),
+                        ...standardAuthErrors
+                    }
+                }
             })
             .post('/auth/logout', async (ctx: any) => {
                 const { user, body, set } = ctx;
@@ -102,7 +139,13 @@ export const authRoutes = new Elysia({ detail: { tags: ['Auth'] } })
                 set.status = response.status;
                 return response.body;
             }, {
-                detail: { summary: 'Cerrar sesión' }
+                detail: { 
+                    summary: 'Cerrar sesión',
+                    responses: {
+                        '200': swaggerSuccess("Logout exitoso", null),
+                        ...standardAuthErrors
+                    }
+                }
             })
 
             .get('/users/me', async (ctx: any) => {
@@ -117,7 +160,13 @@ export const authRoutes = new Elysia({ detail: { tags: ['Auth'] } })
                 set.status = response.status;
                 return response.body;
             }, {
-                detail: { summary: 'Obtener perfil del usuario' }
+                detail: { 
+                    summary: 'Obtener perfil del usuario',
+                    responses: {
+                        '200': swaggerSuccess("Perfil del usuario", { user: { id: "user-123", email: "john@test.com" }, households: [{ id: "hh-123", name: "Mi Hogar", role: "owner" }] }),
+                        ...standardAuthErrors
+                    }
+                }
             })
 
             .patch('/users/me/push-token', async (ctx: any) => {
@@ -130,7 +179,14 @@ export const authRoutes = new Elysia({ detail: { tags: ['Auth'] } })
                 return response.body;
             }, {
                 body: pushTokenRequestSchema,
-                detail: { summary: 'Actualizar token push' }
+                detail: { 
+                    summary: 'Actualizar token push',
+                    responses: {
+                        '200': swaggerSuccess("Push token actualizado", null),
+                        ...standardValidationErrors,
+                        ...standardAuthErrors
+                    }
+                }
             })
 
             .delete('/users/me/push-token', async (ctx: any) => {
@@ -143,6 +199,13 @@ export const authRoutes = new Elysia({ detail: { tags: ['Auth'] } })
                 return response.body;
             }, {
                 body: pushTokenRequestSchema,
-                detail: { summary: 'Eliminar token push' }
+                detail: { 
+                    summary: 'Eliminar token push',
+                    responses: {
+                        '200': swaggerSuccess("Push token eliminado", null),
+                        ...standardValidationErrors,
+                        ...standardAuthErrors
+                    }
+                }
             })
     );

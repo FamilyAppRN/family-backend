@@ -1,6 +1,7 @@
 import { Elysia, t } from 'elysia';
 import { authMiddleware } from '../../../../middleware/auth.middleware.js';
 import { ApiResponse } from '../../../../shared/infrastructure/http/responseFormatter.js';
+import { swaggerSuccess, standardAuthErrors, standardValidationErrors, standardNotFoundErrors, customNoteErrors } from '../../../../shared/infrastructure/http/swaggerResponses.js';
 import { MongooseNoteRepository } from '../persistence/MongooseNoteRepository.js';
 import { CreateNoteUseCase } from '../../application/createNoteUseCase.js';
 import { ListNotesUseCase } from '../../application/listNotesUseCase.js';
@@ -20,7 +21,14 @@ export const notesRoutes = new Elysia({ prefix: '/notes', detail: { tags: ['Note
     return response.body;
   }, {
     params: t.Object({ householdId: t.String() }),
-    detail: { summary: 'Listar notas de un hogar' }
+    detail: { 
+        summary: 'Listar notas de un hogar',
+        responses: {
+            '200': swaggerSuccess("Notes retrieved successfully", [{ id: "note-123", title: "Recetas", content: "..." }]),
+            ...standardValidationErrors,
+            ...standardAuthErrors
+        }
+    }
   })
   .post('/:householdId', async ({ params, user, body, set }: any) => {
     const repository = new MongooseNoteRepository();
@@ -37,7 +45,14 @@ export const notesRoutes = new Elysia({ prefix: '/notes', detail: { tags: ['Note
   }, {
     params: t.Object({ householdId: t.String() }),
     body: createNoteRequestSchema,
-    detail: { summary: 'Crear una nueva nota' }
+    detail: { 
+        summary: 'Crear una nueva nota',
+        responses: {
+            '201': swaggerSuccess("Note created successfully", { id: "note-123", title: "Recetas", content: "..." }),
+            ...standardValidationErrors,
+            ...standardAuthErrors
+        }
+    }
   })
   .patch('/:householdId/:noteId', async ({ params, user, body, set }: any) => {
     const repository = new MongooseNoteRepository();
@@ -55,7 +70,16 @@ export const notesRoutes = new Elysia({ prefix: '/notes', detail: { tags: ['Note
   }, {
     params: t.Object({ householdId: t.String(), noteId: t.String() }),
     body: updateNoteRequestSchema,
-    detail: { summary: 'Actualizar una nota existente' }
+    detail: { 
+        summary: 'Actualizar una nota existente',
+        responses: {
+            '200': swaggerSuccess("Note updated successfully", { id: "note-123", title: "Recetas Actualizadas", content: "..." }),
+            ...standardValidationErrors,
+            '404': customNoteErrors.notFound,
+            '403': customNoteErrors.forbidden,
+            ...standardAuthErrors
+        }
+    }
   })
   .delete('/:householdId/:noteId', async ({ params, user, set }: any) => {
     const repository = new MongooseNoteRepository();
@@ -71,5 +95,14 @@ export const notesRoutes = new Elysia({ prefix: '/notes', detail: { tags: ['Note
     return response.body;
   }, {
     params: t.Object({ householdId: t.String(), noteId: t.String() }),
-    detail: { summary: 'Eliminar una nota' }
+    detail: { 
+        summary: 'Eliminar una nota',
+        responses: {
+            '200': swaggerSuccess("Note deleted successfully", null),
+            ...standardValidationErrors,
+            '404': customNoteErrors.notFound,
+            '403': customNoteErrors.forbidden,
+            ...standardAuthErrors
+        }
+    }
   });

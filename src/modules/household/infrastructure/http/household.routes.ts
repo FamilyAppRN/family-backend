@@ -1,6 +1,7 @@
 import { Elysia, t } from 'elysia';
 import { authMiddleware } from '../../../../middleware/auth.middleware.js';
 import { ApiResponse } from '../../../../shared/infrastructure/http/responseFormatter.js';
+import { swaggerSuccess, swaggerError, standardAuthErrors, standardValidationErrors, standardNotFoundErrors, customHouseholdErrors } from '../../../../shared/infrastructure/http/swaggerResponses.js';
 import { MongooseHouseholdRepository } from '../persistence/MongooseHouseholdRepository.js';
 
 import { CreateHouseholdUseCase } from '../../application/useCases/CreateHouseholdUseCase.js';
@@ -38,7 +39,14 @@ export const householdRoutes = new Elysia({ prefix: '/households', detail: { tag
               locale: t.String()
           }))
       }),
-      detail: { summary: 'Crear un nuevo hogar' }
+      detail: { 
+          summary: 'Crear un nuevo hogar',
+          responses: {
+              '201': swaggerSuccess("Hogar creado", { id: "hh-123", name: "Casa principal", members: [{ userId: "user-1", role: "owner" }] }),
+              ...standardValidationErrors,
+              ...standardAuthErrors
+          }
+      }
   })
 
   .get('/:householdId', async ({ params, user, set }: any) => {
@@ -51,7 +59,15 @@ export const householdRoutes = new Elysia({ prefix: '/households', detail: { tag
     set.status = response.status;
     return response.body;
   }, {
-      detail: { summary: 'Obtener detalles de un hogar' }
+      detail: { 
+          summary: 'Obtener detalles de un hogar',
+          responses: {
+              '200': swaggerSuccess("Detalles del hogar", { id: "hh-123", name: "Casa principal", members: [] }),
+              '404': customHouseholdErrors.notFound,
+              '403': customHouseholdErrors.userNotInHousehold,
+              ...standardAuthErrors
+          }
+      }
   })
 
   .patch('/:householdId', async ({ params, body, user, set }: any) => {
@@ -74,7 +90,16 @@ export const householdRoutes = new Elysia({ prefix: '/households', detail: { tag
               locale: t.String()
           }))
       }),
-      detail: { summary: 'Actualizar configuración del hogar' }
+      detail: { 
+          summary: 'Actualizar configuración del hogar',
+          responses: {
+              '200': swaggerSuccess("Hogar actualizado", { id: "hh-123", name: "Casa secundaria" }),
+              ...standardValidationErrors,
+              '404': customHouseholdErrors.notFound,
+              '403': customHouseholdErrors.notAdmin,
+              ...standardAuthErrors
+          }
+      }
   })
 
   .post('/join', async ({ body, user, set }: any) => {
@@ -92,7 +117,16 @@ export const householdRoutes = new Elysia({ prefix: '/households', detail: { tag
       body: t.Object({
           inviteCode: t.String()
       }),
-      detail: { summary: 'Unirse a un hogar con código de invitación' }
+      detail: { 
+          summary: 'Unirse a un hogar con código de invitación',
+          responses: {
+              '200': swaggerSuccess("Te has unido al hogar", { id: "hh-123", name: "Casa principal" }),
+              ...standardValidationErrors,
+              '400': customHouseholdErrors.invalidInviteCode,
+              '409': customHouseholdErrors.userAlreadyInHousehold,
+              ...standardAuthErrors
+          }
+      }
   })
 
   .post('/:householdId/invitations', async ({ params, body, user, set }: any) => {
@@ -110,7 +144,16 @@ export const householdRoutes = new Elysia({ prefix: '/households', detail: { tag
     body: t.Object({
       email: t.String({ format: 'email' })
     }),
-    detail: { summary: 'Enviar invitación a un usuario' }
+    detail: { 
+        summary: 'Enviar invitación a un usuario',
+        responses: {
+            '202': swaggerSuccess("Invitación enviada", null),
+            ...standardValidationErrors,
+            '404': customHouseholdErrors.notFound,
+            '403': customHouseholdErrors.notAdmin,
+            ...standardAuthErrors
+        }
+    }
   })
 
   .delete('/:householdId/members/:targetUserId', async ({ params, user, set }: any) => {
@@ -125,5 +168,13 @@ export const householdRoutes = new Elysia({ prefix: '/households', detail: { tag
     set.status = response.status;
     return response.body;
   }, {
-      detail: { summary: 'Eliminar un miembro del hogar' }
+      detail: { 
+          summary: 'Eliminar un miembro del hogar',
+          responses: {
+              '200': swaggerSuccess("Miembro eliminado del hogar", null),
+              '404': customHouseholdErrors.notFound,
+              '403': customHouseholdErrors.ownerCannotLeave,
+              ...standardAuthErrors
+          }
+      }
   });

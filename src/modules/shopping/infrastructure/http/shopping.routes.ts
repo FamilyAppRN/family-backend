@@ -1,6 +1,7 @@
 import { Elysia, t } from 'elysia';
 import { authMiddleware } from '../../../../middleware/auth.middleware.js';
 import { ApiResponse } from '../../../../shared/infrastructure/http/responseFormatter.js';
+import { swaggerSuccess, standardAuthErrors, standardValidationErrors, standardNotFoundErrors, customShoppingErrors } from '../../../../shared/infrastructure/http/swaggerResponses.js';
 import { MongooseShoppingRepository } from '../persistence/MongooseShoppingRepository.js';
 
 import { CreateShoppingListUseCase } from '../../application/useCases/createShoppingListUseCase.js';
@@ -37,7 +38,14 @@ export const shoppingRoutes = new Elysia({ prefix: '/shopping', detail: { tags: 
       household_id: t.String(),
       name: t.String()
     }),
-    detail: { summary: 'Crear una nueva lista de compras' }
+    detail: { 
+        summary: 'Crear una nueva lista de compras',
+        responses: {
+            '201': swaggerSuccess("Shopping list created", { id: "list-123", name: "Supermercado", household_id: "hh-123" }),
+            ...standardValidationErrors,
+            ...standardAuthErrors
+        }
+    }
   })
   .get('/:householdId', async ({ params, query, set }: any) => {
     const result = await getShoppingListsUseCase.execute({
@@ -52,7 +60,14 @@ export const shoppingRoutes = new Elysia({ prefix: '/shopping', detail: { tags: 
     query: t.Object({
       status: t.Optional(t.Union([t.Literal('active'), t.Literal('archived')]))
     }),
-    detail: { summary: 'Listar listas de compras de un hogar' }
+    detail: { 
+        summary: 'Listar listas de compras de un hogar',
+        responses: {
+            '200': swaggerSuccess("Shopping lists retrieved", [{ id: "list-123", name: "Supermercado", items: [] }]),
+            ...standardValidationErrors,
+            ...standardAuthErrors
+        }
+    }
   })
   .post('/:listId/items', async ({ params, body, user, set }: any) => {
     const { name, quantity } = body as { name: string; quantity: number; };
@@ -71,7 +86,15 @@ export const shoppingRoutes = new Elysia({ prefix: '/shopping', detail: { tags: 
       name: t.String(),
       quantity: t.Number({ minimum: 1, default: 1 })
     }),
-    detail: { summary: 'Añadir un ítem a la lista de compras' }
+    detail: { 
+        summary: 'Añadir un ítem a la lista de compras',
+        responses: {
+            '201': swaggerSuccess("Item added to list", { id: "item-123", name: "Leche", quantity: 2, is_completed: false }),
+            ...standardValidationErrors,
+            '404': customShoppingErrors.listNotFound,
+            ...standardAuthErrors
+        }
+    }
   })
   .patch('/:listId/items/:itemId', async ({ params, body, user, set }: any) => {
     const { is_completed } = body as { is_completed: boolean; };
@@ -89,7 +112,15 @@ export const shoppingRoutes = new Elysia({ prefix: '/shopping', detail: { tags: 
     body: t.Object({
       is_completed: t.Boolean()
     }),
-    detail: { summary: 'Marcar ítem como completado o pendiente' }
+    detail: { 
+        summary: 'Marcar ítem como completado o pendiente',
+        responses: {
+            '200': swaggerSuccess("Item status toggled", { id: "item-123", is_completed: true }),
+            ...standardValidationErrors,
+            '404': customShoppingErrors.itemNotFound,
+            ...standardAuthErrors
+        }
+    }
   })
   .patch('/:listId', async ({ params, body, set }: any) => {
     const { name, status } = body as { name?: string; status?: 'active' | 'archived'; };
@@ -107,7 +138,15 @@ export const shoppingRoutes = new Elysia({ prefix: '/shopping', detail: { tags: 
       name: t.Optional(t.String()),
       status: t.Optional(t.Union([t.Literal('active'), t.Literal('archived')]))
     }),
-    detail: { summary: 'Actualizar una lista de compras' }
+    detail: { 
+        summary: 'Actualizar una lista de compras',
+        responses: {
+            '200': swaggerSuccess("Shopping list updated", { id: "list-123", name: "Mercado Central", status: "active" }),
+            ...standardValidationErrors,
+            '404': customShoppingErrors.listNotFound,
+            ...standardAuthErrors
+        }
+    }
   })
   .delete('/:listId', async ({ params, set }: any) => {
     await deleteShoppingListUseCase.execute({
@@ -118,5 +157,12 @@ export const shoppingRoutes = new Elysia({ prefix: '/shopping', detail: { tags: 
     set.status = response.status;
     return response.body;
   }, {
-    detail: { summary: 'Eliminar una lista de compras' }
+    detail: { 
+        summary: 'Eliminar una lista de compras',
+        responses: {
+            '200': swaggerSuccess("Shopping list deleted", null),
+            '404': customShoppingErrors.listNotFound,
+            ...standardAuthErrors
+        }
+    }
   });

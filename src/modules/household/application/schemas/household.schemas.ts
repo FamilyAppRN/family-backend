@@ -52,6 +52,17 @@ export const AddMemberInputSchema = t.Object({
   userName: t.String()
 });
 
+export const SendHouseholdInvitationInputSchema = t.Object({
+  householdId: t.String(),
+  requestingUserId: t.String(),
+  requestingUserName: t.String(),
+  recipientEmail: t.String({ format: 'email' })
+});
+
+export const SendHouseholdInvitationOutputSchema = t.Object({
+  recipientEmail: t.String({ format: 'email' })
+});
+
 export const RemoveMemberInputSchema = t.Object({
   householdId: t.String(),
   requestingUserId: t.String(), // The user making the request

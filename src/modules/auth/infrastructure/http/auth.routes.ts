@@ -19,7 +19,7 @@ import {
     checkEmailRequestSchema 
 } from '../../application/schemas/auth.schemas.js';
 
-export const authRoutes = new Elysia()
+export const authRoutes = new Elysia({ detail: { tags: ['Auth'] } })
     .group('/auth', (app) =>
         app
             .post('/register', async ({ body, set }) => {
@@ -32,6 +32,7 @@ export const authRoutes = new Elysia()
                 return response.body;
             }, {
                 body: registerRequestSchema,
+                detail: { summary: 'Registrar un nuevo usuario' }
             })
 
             .post('/login', async ({ body, set }) => {
@@ -44,6 +45,7 @@ export const authRoutes = new Elysia()
                 return response.body;
             }, {
                 body: loginRequestSchema,
+                detail: { summary: 'Iniciar sesión' }
             })
 
             .post('/refresh', async ({ body, set }) => {
@@ -56,6 +58,7 @@ export const authRoutes = new Elysia()
                 return response.body;
             }, {
                 body: refreshTokenRequestSchema,
+                detail: { summary: 'Refrescar token de acceso' }
             })
 
             .post('/check-email', async ({ body, set }) => {
@@ -68,6 +71,7 @@ export const authRoutes = new Elysia()
                 return response.body;
             }, {
                 body: checkEmailRequestSchema,
+                detail: { summary: 'Verificar disponibilidad de email' }
             })
     )
     .group('', (app) =>
@@ -82,6 +86,8 @@ export const authRoutes = new Elysia()
                 const response = ApiResponse.success(result, "Sesión activa", 200);
                 set.status = response.status;
                 return response.body;
+            }, {
+                detail: { summary: 'Validar sesión actual' }
             })
             .post('/auth/logout', async (ctx: any) => {
                 const { user, body, set } = ctx;
@@ -95,6 +101,8 @@ export const authRoutes = new Elysia()
                 const response = ApiResponse.success(result, "Logout exitoso", 200);
                 set.status = response.status;
                 return response.body;
+            }, {
+                detail: { summary: 'Cerrar sesión' }
             })
 
             .get('/users/me', async (ctx: any) => {
@@ -108,6 +116,8 @@ export const authRoutes = new Elysia()
                 const response = ApiResponse.success(result, "Perfil del usuario", 200);
                 set.status = response.status;
                 return response.body;
+            }, {
+                detail: { summary: 'Obtener perfil del usuario' }
             })
 
             .patch('/users/me/push-token', async (ctx: any) => {
@@ -120,6 +130,7 @@ export const authRoutes = new Elysia()
                 return response.body;
             }, {
                 body: pushTokenRequestSchema,
+                detail: { summary: 'Actualizar token push' }
             })
 
             .delete('/users/me/push-token', async (ctx: any) => {
@@ -132,5 +143,6 @@ export const authRoutes = new Elysia()
                 return response.body;
             }, {
                 body: pushTokenRequestSchema,
+                detail: { summary: 'Eliminar token push' }
             })
     );

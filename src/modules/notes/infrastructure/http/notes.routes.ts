@@ -8,7 +8,7 @@ import { UpdateNoteUseCase } from '../../application/updateNoteUseCase.js';
 import { DeleteNoteUseCase } from '../../application/deleteNoteUseCase.js';
 import { createNoteRequestSchema, updateNoteRequestSchema } from '../../application/schemas/notes.schemas.js';
 
-export const notesRoutes = new Elysia({ prefix: '/notes' })
+export const notesRoutes = new Elysia({ prefix: '/notes', detail: { tags: ['Notes'] } })
   .use(authMiddleware)
   .get('/:householdId', async ({ params, set }) => {
     const repository = new MongooseNoteRepository();
@@ -20,6 +20,7 @@ export const notesRoutes = new Elysia({ prefix: '/notes' })
     return response.body;
   }, {
     params: t.Object({ householdId: t.String() }),
+    detail: { summary: 'Listar notas de un hogar' }
   })
   .post('/:householdId', async ({ params, user, body, set }: any) => {
     const repository = new MongooseNoteRepository();
@@ -36,6 +37,7 @@ export const notesRoutes = new Elysia({ prefix: '/notes' })
   }, {
     params: t.Object({ householdId: t.String() }),
     body: createNoteRequestSchema,
+    detail: { summary: 'Crear una nueva nota' }
   })
   .patch('/:householdId/:noteId', async ({ params, user, body, set }: any) => {
     const repository = new MongooseNoteRepository();
@@ -53,6 +55,7 @@ export const notesRoutes = new Elysia({ prefix: '/notes' })
   }, {
     params: t.Object({ householdId: t.String(), noteId: t.String() }),
     body: updateNoteRequestSchema,
+    detail: { summary: 'Actualizar una nota existente' }
   })
   .delete('/:householdId/:noteId', async ({ params, user, set }: any) => {
     const repository = new MongooseNoteRepository();
@@ -68,4 +71,5 @@ export const notesRoutes = new Elysia({ prefix: '/notes' })
     return response.body;
   }, {
     params: t.Object({ householdId: t.String(), noteId: t.String() }),
+    detail: { summary: 'Eliminar una nota' }
   });

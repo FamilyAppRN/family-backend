@@ -19,7 +19,7 @@ const toggleItemStatusUseCase = new ToggleItemStatusUseCase(shoppingRepository);
 const deleteShoppingListUseCase = new DeleteShoppingListUseCase(shoppingRepository);
 const updateShoppingListUseCase = new UpdateShoppingListUseCase(shoppingRepository);
 
-export const shoppingRoutes = new Elysia({ prefix: '/shopping' })
+export const shoppingRoutes = new Elysia({ prefix: '/shopping', detail: { tags: ['Shopping'] } })
   .use(authMiddleware)
   .post('/', async ({ body, user, set }: any) => {
     const { household_id, name } = body as { household_id: string; name: string; };
@@ -36,7 +36,8 @@ export const shoppingRoutes = new Elysia({ prefix: '/shopping' })
     body: t.Object({
       household_id: t.String(),
       name: t.String()
-    })
+    }),
+    detail: { summary: 'Crear una nueva lista de compras' }
   })
   .get('/:householdId', async ({ params, query, set }: any) => {
     const result = await getShoppingListsUseCase.execute({
@@ -50,7 +51,8 @@ export const shoppingRoutes = new Elysia({ prefix: '/shopping' })
   }, {
     query: t.Object({
       status: t.Optional(t.Union([t.Literal('active'), t.Literal('archived')]))
-    })
+    }),
+    detail: { summary: 'Listar listas de compras de un hogar' }
   })
   .post('/:listId/items', async ({ params, body, user, set }: any) => {
     const { name, quantity } = body as { name: string; quantity: number; };
@@ -68,7 +70,8 @@ export const shoppingRoutes = new Elysia({ prefix: '/shopping' })
     body: t.Object({
       name: t.String(),
       quantity: t.Number({ minimum: 1, default: 1 })
-    })
+    }),
+    detail: { summary: 'Añadir un ítem a la lista de compras' }
   })
   .patch('/:listId/items/:itemId', async ({ params, body, user, set }: any) => {
     const { is_completed } = body as { is_completed: boolean; };
@@ -85,7 +88,8 @@ export const shoppingRoutes = new Elysia({ prefix: '/shopping' })
   }, {
     body: t.Object({
       is_completed: t.Boolean()
-    })
+    }),
+    detail: { summary: 'Marcar ítem como completado o pendiente' }
   })
   .patch('/:listId', async ({ params, body, set }: any) => {
     const { name, status } = body as { name?: string; status?: 'active' | 'archived'; };
@@ -102,7 +106,8 @@ export const shoppingRoutes = new Elysia({ prefix: '/shopping' })
     body: t.Object({
       name: t.Optional(t.String()),
       status: t.Optional(t.Union([t.Literal('active'), t.Literal('archived')]))
-    })
+    }),
+    detail: { summary: 'Actualizar una lista de compras' }
   })
   .delete('/:listId', async ({ params, set }: any) => {
     await deleteShoppingListUseCase.execute({
@@ -112,4 +117,6 @@ export const shoppingRoutes = new Elysia({ prefix: '/shopping' })
     const response = ApiResponse.success(null, "Shopping list deleted", 200);
     set.status = response.status;
     return response.body;
+  }, {
+    detail: { summary: 'Eliminar una lista de compras' }
   });

@@ -3,6 +3,8 @@ import { authMiddleware } from '../../../../middleware/auth.middleware.js';
 import { ApiResponse } from '../../../../shared/infrastructure/http/responseFormatter.js';
 import { swaggerSuccess, standardAuthErrors, standardValidationErrors, standardNotFoundErrors, customShoppingErrors } from '../../../../shared/infrastructure/http/swaggerResponses.js';
 import { MongooseShoppingRepository } from '../persistence/MongooseShoppingRepository.js';
+import { MongooseHouseholdRepository } from '../../../household/infrastructure/persistence/MongooseHouseholdRepository.js';
+import { GetHouseholdUseCase } from '../../../household/application/useCases/GetHouseholdUseCase.js';
 
 import { CreateShoppingListUseCase } from '../../application/useCases/createShoppingListUseCase.js';
 import { GetShoppingListsUseCase } from '../../application/useCases/getShoppingListsUseCase.js';
@@ -10,15 +12,18 @@ import { AddItemToListUseCase } from '../../application/useCases/addItemToListUs
 import { ToggleItemStatusUseCase } from '../../application/useCases/toggleItemStatusUseCase.js';
 import { DeleteShoppingListUseCase } from '../../application/useCases/deleteShoppingListUseCase.js';
 import { UpdateShoppingListUseCase } from '../../application/useCases/updateShoppingListUseCase.js';
+import { FinalizeShoppingListUseCase } from '../../application/useCases/finalizeShoppingListUseCase.js';
 
 const shoppingRepository = new MongooseShoppingRepository();
+const getHouseholdUseCase = new GetHouseholdUseCase(new MongooseHouseholdRepository());
 
-const createShoppingListUseCase = new CreateShoppingListUseCase(shoppingRepository);
-const getShoppingListsUseCase = new GetShoppingListsUseCase(shoppingRepository);
-const addItemToListUseCase = new AddItemToListUseCase(shoppingRepository);
-const toggleItemStatusUseCase = new ToggleItemStatusUseCase(shoppingRepository);
-const deleteShoppingListUseCase = new DeleteShoppingListUseCase(shoppingRepository);
-const updateShoppingListUseCase = new UpdateShoppingListUseCase(shoppingRepository);
+const createShoppingListUseCase = new CreateShoppingListUseCase(shoppingRepository, getHouseholdUseCase);
+const getShoppingListsUseCase = new GetShoppingListsUseCase(shoppingRepository, getHouseholdUseCase);
+const addItemToListUseCase = new AddItemToListUseCase(shoppingRepository, getHouseholdUseCase);
+const toggleItemStatusUseCase = new ToggleItemStatusUseCase(shoppingRepository, getHouseholdUseCase);
+const deleteShoppingListUseCase = new DeleteShoppingListUseCase(shoppingRepository, getHouseholdUseCase);
+const updateShoppingListUseCase = new UpdateShoppingListUseCase(shoppingRepository, getHouseholdUseCase);
+const finalizeShoppingListUseCase = new FinalizeShoppingListUseCase(shoppingRepository, getHouseholdUseCase);
 
 export const shoppingRoutes = new Elysia({ prefix: '/shopping', detail: { tags: ['Shopping'] } })
   .use(authMiddleware)
@@ -47,10 +52,11 @@ export const shoppingRoutes = new Elysia({ prefix: '/shopping', detail: { tags: 
         }
     }
   })
-  .get('/:householdId', async ({ params, query, set }: any) => {
+  .get('/:householdId', async ({ params, query, user, set }: any) => {
     const result = await getShoppingListsUseCase.execute({
       household_id: params.householdId,
-      status: query?.status
+      status: query?.status,
+      user_id: user.id
     });
 
     const response = ApiResponse.success(result, "Shopping lists retrieved", 200);
@@ -122,12 +128,32 @@ export const shoppingRoutes = new Elysia({ prefix: '/shopping', detail: { tags: 
         }
     }
   })
-  .patch('/:listId', async ({ params, body, set }: any) => {
-    const { name, status } = body as { name?: string; status?: 'active' | 'archived'; };
+  .post('/:listId/finalize', async ({ params, user, set }: any) => {
+    const result = await finalizeShoppingListUseCase.execute({
+      list_id: params.listId,
+      user_id: user.id
+    });
+
+    const response = ApiResponse.success(result, 'Purchase finalized', 200);
+    set.status = response.status;
+    return response.body;
+  }, {
+    detail: {
+      summary: 'Finalizar una compra y crear la siguiente lista vacía',
+      responses: {
+        '200': swaggerSuccess('Purchase finalized', { history: { completed_at: '2026-07-24T12:00:00.000Z', items: [] }, active_list: { status: 'active', items: [], history: [] } }),
+        '409': customShoppingErrors.purchaseNotReady,
+        '404': customShoppingErrors.listNotFound,
+        ...standardAuthErrors
+      }
+    }
+  })
+  .patch('/:listId', async ({ params, body, user, set }: any) => {
+    const { name } = body as { name?: string; };
     const result = await updateShoppingListUseCase.execute({
       list_id: params.listId,
       name,
-      status
+      user_id: user.id
     });
 
     const response = ApiResponse.success(result, "Shopping list updated", 200);
@@ -135,8 +161,7 @@ export const shoppingRoutes = new Elysia({ prefix: '/shopping', detail: { tags: 
     return response.body;
   }, {
     body: t.Object({
-      name: t.Optional(t.String()),
-      status: t.Optional(t.Union([t.Literal('active'), t.Literal('archived')]))
+      name: t.Optional(t.String())
     }),
     detail: { 
         summary: 'Actualizar una lista de compras',
@@ -148,9 +173,10 @@ export const shoppingRoutes = new Elysia({ prefix: '/shopping', detail: { tags: 
         }
     }
   })
-  .delete('/:listId', async ({ params, set }: any) => {
+  .delete('/:listId', async ({ params, user, set }: any) => {
     await deleteShoppingListUseCase.execute({
-      list_id: params.listId
+      list_id: params.listId,
+      user_id: user.id
     });
 
     const response = ApiResponse.success(null, "Shopping list deleted", 200);

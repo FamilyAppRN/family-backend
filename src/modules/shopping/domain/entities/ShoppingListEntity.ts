@@ -13,6 +13,14 @@ export interface ShoppingListEntity {
   name: string;
   status: 'active' | 'archived';
   items: ShoppingItemEntity[];
+  history: ShoppingPurchaseHistoryEntity[];
   created_by: string;
   created_at: Date;
+}
+
+export interface ShoppingPurchaseHistoryEntity {
+  id: string;
+  items: ShoppingItemEntity[];
+  completed_at: Date;
+  completed_by: string;
 }

@@ -89,6 +89,8 @@ export const customHouseholdErrors = {
 export const customShoppingErrors = {
     listNotFound: swaggerError('Lista de compras no encontrada', { code: 'NOT_FOUND_ERROR', category: 'NOT_FOUND' }),
     itemNotFound: swaggerError('Item de compra no encontrado', { code: 'NOT_FOUND_ERROR', category: 'NOT_FOUND' }),
+    activeListExists: swaggerError('El hogar ya tiene una lista de compras activa', { code: 'CONFLICT_ERROR', category: 'CONFLICT' }),
+    purchaseNotReady: swaggerError('Todos los ítems deben estar comprados para finalizar', { code: 'PURCHASE_NOT_READY', category: 'BUSINESS' }),
 };
 
 export const customTaskErrors = {

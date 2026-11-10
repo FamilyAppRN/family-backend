@@ -87,7 +87,8 @@ export const authRoutes = new Elysia({ detail: { tags: ['Auth'] } })
                         ...standardValidationErrors,
                         '400': customAuthErrors.invalidCredentials,
                         '401': customAuthErrors.invalidCredentials,
-                        '403': customAuthErrors.userDisabled
+                        '403': customAuthErrors.userDisabled,
+                        '500': customAuthErrors.internalError
                     }
                 }
             })
@@ -109,7 +110,8 @@ export const authRoutes = new Elysia({ detail: { tags: ['Auth'] } })
                         ...standardValidationErrors,
                         '400': customAuthErrors.invalidCredentials,
                         '401': customAuthErrors.invalidCredentials,
-                        '403': customAuthErrors.userDisabled
+                        '403': customAuthErrors.userDisabled,
+                        '500': customAuthErrors.internalError
                     }
                 }
             })
@@ -130,50 +132,6 @@ export const authRoutes = new Elysia({ detail: { tags: ['Auth'] } })
                         '200': swaggerSuccess("Token renovado exitosamente", { accessToken: "ey...", refreshToken: "ey..." }),
                         ...standardValidationErrors,
                         ...standardAuthErrors
-                    }
-                }
-            })
-
-            .post('/google', async ({ body, set }) => {
-                const repository = new MongooseAuthRepository();
-                const useCase = new GoogleLoginUseCase(repository);
-                const result = await useCase.execute(body);
-
-                const response = ApiResponse.success(result, "Inicio de sesión con Google exitoso", 200);
-                set.status = response.status;
-                return response.body;
-            }, {
-                body: googleLoginRequestSchema,
-                detail: {
-                    summary: 'Iniciar sesión con Google',
-                    responses: {
-                        '200': swaggerSuccess("Inicio de sesión con Google exitoso", { user: { id: "user-123", name: "John", email: "john@test.com" }, accessToken: "ey...", refreshToken: "ey..." }),
-                        ...standardValidationErrors,
-                        '400': customAuthErrors.invalidCredentials,
-                        '401': customAuthErrors.invalidCredentials,
-                        '500': customAuthErrors.internalError
-                    }
-                }
-            })
-
-            .post('/apple', async ({ body, set }) => {
-                const repository = new MongooseAuthRepository();
-                const useCase = new AppleLoginUseCase(repository);
-                const result = await useCase.execute(body);
-
-                const response = ApiResponse.success(result, "Inicio de sesión con Apple exitoso", 200);
-                set.status = response.status;
-                return response.body;
-            }, {
-                body: appleLoginRequestSchema,
-                detail: {
-                    summary: 'Iniciar sesión con Apple',
-                    responses: {
-                        '200': swaggerSuccess("Inicio de sesión con Apple exitoso", { user: { id: "user-123", name: "John", email: "john@test.com" }, accessToken: "ey...", refreshToken: "ey..." }),
-                        ...standardValidationErrors,
-                        '400': customAuthErrors.invalidCredentials,
-                        '401': customAuthErrors.invalidCredentials,
-                        '500': customAuthErrors.internalError
                     }
                 }
             })

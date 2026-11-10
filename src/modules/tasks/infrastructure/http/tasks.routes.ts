@@ -1,5 +1,6 @@
 import { Elysia } from 'elysia';
 import { emitHouseholdUpdated } from '../../../../sockets/emitter.js';
+import { notifyTaskAssigned } from '../../../../shared/push/triggers.js';
 import { authMiddleware } from '../../../../middleware/auth.middleware.js';
 
 import { MongooseTaskRepository } from '../persistence/MongooseTaskRepository.js';
@@ -40,6 +41,7 @@ export const tasksRoutes = new Elysia({ prefix: '/tasks' })
         });
 
         emitHouseholdUpdated(result?.household_id, 'tasks', user.id);
+        void notifyTaskAssigned(result, user);
         const response = ApiResponse.success(result, "Task created successfully", 201);
         set.status = response.status;
         return response.body;
@@ -74,7 +76,10 @@ export const tasksRoutes = new Elysia({ prefix: '/tasks' })
         }
     })
     .patch('/:id', async ({ params: { id }, body, user, set }: any) => {
+        // Se lee antes para saber si el asignado cambia de verdad.
+        const previous = body.assignee_id !== undefined ? await taskRepository.findById(id) : null;
         const result = await updateTaskUseCase.execute({ ...body, id, user_id: user.id });
+        if (body.assignee_id !== undefined) void notifyTaskAssigned(result, user, previous?.assignee_id);
 
         emitHouseholdUpdated(result?.household_id, 'tasks', user.id);
         const response = ApiResponse.success(result, "Task updated successfully", 200);
@@ -114,7 +119,9 @@ export const tasksRoutes = new Elysia({ prefix: '/tasks' })
         }
     })
     .patch('/:id/assign', async ({ params: { id }, body, user, set }: any) => {
+        const previous = await taskRepository.findById(id);
         const result = await assignTaskUseCase.execute({ id, user_id: user.id, assignee_id: body.assignee_id });
+        void notifyTaskAssigned(result, user, previous?.assignee_id);
 
         emitHouseholdUpdated(result?.household_id, 'tasks', user.id);
         const response = ApiResponse.success(result, "Task assigned successfully", 200);

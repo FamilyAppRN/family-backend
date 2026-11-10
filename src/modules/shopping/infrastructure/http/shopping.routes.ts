@@ -1,5 +1,6 @@
 import { Elysia, t } from 'elysia';
 import { emitHouseholdUpdated } from '../../../../sockets/emitter.js';
+import { notifyUrgentItem } from '../../../../shared/push/triggers.js';
 import { authMiddleware } from '../../../../middleware/auth.middleware.js';
 import { ApiResponse } from '../../../../shared/infrastructure/http/responseFormatter.js';
 import { swaggerSuccess, standardAuthErrors, standardValidationErrors, standardNotFoundErrors, customShoppingErrors } from '../../../../shared/infrastructure/http/swaggerResponses.js';
@@ -92,6 +93,7 @@ export const shoppingRoutes = new Elysia({ prefix: '/shopping', detail: { tags: 
     });
 
     emitHouseholdUpdated((result as any)?.household_id, 'shopping', user.id);
+    if (is_urgent) void notifyUrgentItem((result as any)?.household_id, name, user);
     const response = ApiResponse.success(result, "Item added to list", 201);
     set.status = response.status;
     return response.body;

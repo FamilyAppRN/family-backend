@@ -1,5 +1,7 @@
 import { Elysia, t } from 'elysia';
 import { emitHouseholdUpdated, emitMemberRemoved } from '../../../../sockets/emitter.js';
+import { notifyGoingShopping, notifyMemberJoined } from '../../../../shared/push/triggers.js';
+import { assertHouseholdMembership } from '../../application/services/HouseholdMembership.js';
 import { authMiddleware } from '../../../../middleware/auth.middleware.js';
 import { ApiResponse } from '../../../../shared/infrastructure/http/responseFormatter.js';
 import { swaggerSuccess, swaggerError, standardAuthErrors, standardValidationErrors, standardNotFoundErrors, customHouseholdErrors } from '../../../../shared/infrastructure/http/swaggerResponses.js';
@@ -113,6 +115,11 @@ export const householdRoutes = new Elysia({ prefix: '/households', detail: { tag
     };
     const result = await useCase.execute(data);
     emitHouseholdUpdated((result as any)?.id, 'household', user.id);
+    void notifyMemberJoined(
+      (result as any)?.id,
+      ((result as any)?.members ?? []).map((member: { user_id: string }) => member.user_id),
+      user,
+    );
     const response = ApiResponse.success(result, "Te has unido al hogar");
     set.status = response.status;
     return response.body;
@@ -157,6 +164,23 @@ export const householdRoutes = new Elysia({ prefix: '/households', detail: { tag
             ...standardAuthErrors
         }
     }
+  })
+
+  .post('/:householdId/going-shopping', async ({ params, user, set }: any) => {
+    await assertHouseholdMembership(new GetHouseholdUseCase(repository), params.householdId, user.id);
+    void notifyGoingShopping(params.householdId, user);
+    const response = ApiResponse.success(null, "Aviso enviado al hogar", 202);
+    set.status = response.status;
+    return response.body;
+  }, {
+      detail: {
+          summary: 'Avisar al hogar que vas al supermercado',
+          responses: {
+              '202': swaggerSuccess("Aviso enviado al hogar", null),
+              '404': customHouseholdErrors.notFound,
+              ...standardAuthErrors
+          }
+      }
   })
 
   .delete('/:householdId/members/:targetUserId', async ({ params, user, set }: any) => {

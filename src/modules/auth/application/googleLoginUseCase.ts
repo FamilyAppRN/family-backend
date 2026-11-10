@@ -26,6 +26,11 @@ export class GoogleLoginUseCase extends UseCase<any, any> {
       throw new ApplicationError(400, 'Google token does not contain email', 'MISSING_EMAIL', 'VALIDATION');
     }
 
+    // Never link to (or create) an account from an email the provider has not verified
+    if (payload.email_verified !== true) {
+      throw new ApplicationError(401, 'Google account email is not verified', 'EMAIL_NOT_VERIFIED', 'AUTHENTICATION');
+    }
+
     // 3. Check if user exists by email
     let user = await this.authRepository.findByEmail(email);
     let firebaseUid: string;

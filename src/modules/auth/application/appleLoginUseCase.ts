@@ -26,6 +26,11 @@ export class AppleLoginUseCase extends UseCase<any, any> {
       throw new ApplicationError(400, 'Apple token does not contain email', 'MISSING_EMAIL', 'VALIDATION');
     }
 
+    // Apple sends email_verified as a boolean or as the string "true"
+    if (String(payload.email_verified) !== 'true') {
+      throw new ApplicationError(401, 'Apple account email is not verified', 'EMAIL_NOT_VERIFIED', 'AUTHENTICATION');
+    }
+
     // Extract name from Apple's name object
     let displayName = '';
     if (name) {

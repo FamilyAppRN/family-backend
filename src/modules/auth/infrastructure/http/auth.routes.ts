@@ -1,4 +1,4 @@
-import { Elysia } from 'elysia';
+import { Elysia, t } from 'elysia';
 import { authMiddleware } from '../../../../middleware/auth.middleware.js';
 import { ApiResponse } from '../../../../shared/infrastructure/http/responseFormatter.js';
 import { RegisterUseCase } from '../../application/registerUseCase.js';
@@ -219,7 +219,27 @@ export const authRoutes = new Elysia({ detail: { tags: ['Auth'] } })
                 }
             })
 
-            .patch('/users/me/push-token', async (ctx: any) => {
+            .patch('/users/me', async (ctx: any) => {
+                const { user, body, set } = ctx;
+                const repository = new MongooseAuthRepository();
+                const updated = await repository.update(user.id, { notifications_enabled: body.notifications_enabled });
+
+                const response = ApiResponse.success({ notifications_enabled: updated.notifications_enabled }, "Preferencias actualizadas", 200);
+                set.status = response.status;
+                return response.body;
+            }, {
+                body: t.Object({ notifications_enabled: t.Boolean() }),
+                detail: {
+                    summary: 'Activar o desactivar las notificaciones push',
+                    responses: {
+                        '200': swaggerSuccess("Preferencias actualizadas", { notifications_enabled: false }),
+                        ...standardValidationErrors,
+                        ...standardAuthErrors
+                    }
+                }
+            })
+
+                        .patch('/users/me/push-token', async (ctx: any) => {
                 const { user, body, set } = ctx;
                 const repository = new MongooseAuthRepository();
                 await repository.addPushToken(user.id, (body as any).token, (body as any).device_label);

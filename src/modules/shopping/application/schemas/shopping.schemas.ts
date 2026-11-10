@@ -4,6 +4,9 @@ export const ShoppingItemSchema = Type.Object({
   id: Type.String(),
   name: Type.String(),
   quantity: Type.Number(),
+  unit: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+  category: Type.Optional(Type.String()),
+  is_urgent: Type.Optional(Type.Boolean()),
   is_completed: Type.Boolean(),
   added_by: Type.String(),
   checked_by: Type.Optional(Type.Union([Type.String(), Type.Null()])),
@@ -47,6 +50,9 @@ export const AddItemToListInput = Type.Object({
   list_id: Type.String(),
   name: Type.String(),
   quantity: Type.Number({ minimum: 1, default: 1 }),
+  unit: Type.Optional(Type.Union([Type.String({ maxLength: 20 }), Type.Null()])),
+  category: Type.Optional(Type.String({ maxLength: 40 })),
+  is_urgent: Type.Optional(Type.Boolean()),
   added_by: Type.String(), // This will be injected from auth
 });
 

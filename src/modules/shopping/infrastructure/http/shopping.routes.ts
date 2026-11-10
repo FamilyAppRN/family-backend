@@ -78,11 +78,16 @@ export const shoppingRoutes = new Elysia({ prefix: '/shopping', detail: { tags: 
     }
   })
   .post('/:listId/items', async ({ params, body, user, set }: any) => {
-    const { name, quantity } = body as { name: string; quantity: number; };
+    const { name, quantity, unit, category, is_urgent } = body as {
+      name: string; quantity: number; unit?: string | null; category?: string; is_urgent?: boolean;
+    };
     const result = await addItemToListUseCase.execute({
       list_id: params.listId,
       name,
       quantity,
+      unit,
+      category,
+      is_urgent,
       added_by: user.id
     });
 
@@ -93,7 +98,10 @@ export const shoppingRoutes = new Elysia({ prefix: '/shopping', detail: { tags: 
   }, {
     body: t.Object({
       name: t.String(),
-      quantity: t.Number({ minimum: 1, default: 1 })
+      quantity: t.Number({ minimum: 1, default: 1 }),
+      unit: t.Optional(t.Union([t.String({ maxLength: 20 }), t.Null()])),
+      category: t.Optional(t.String({ maxLength: 40 })),
+      is_urgent: t.Optional(t.Boolean())
     }),
     detail: { 
         summary: 'Añadir un ítem a la lista de compras',

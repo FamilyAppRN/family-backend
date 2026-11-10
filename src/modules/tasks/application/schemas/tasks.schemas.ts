@@ -71,6 +71,26 @@ export const AssignTaskInputSchema = t.Object({
 
 export const AssignTaskOutputSchema = TaskSchema;
 
+const NullableString = t.Union([t.String(), t.Null()]);
+
+export const UpdateTaskBodySchema = t.Object({
+    title: t.Optional(t.String({ minLength: 1 })),
+    description: t.Optional(NullableString),
+    due_date: t.Optional(NullableString),
+    assignee_id: t.Optional(NullableString)
+});
+
+export const UpdateTaskInputSchema = t.Object({
+    user_id: t.String(),
+    id: t.String(),
+    title: t.Optional(t.String({ minLength: 1 })),
+    description: t.Optional(NullableString),
+    due_date: t.Optional(NullableString),
+    assignee_id: t.Optional(NullableString)
+});
+
+export const UpdateTaskOutputSchema = TaskSchema;
+
 export const DeleteTaskInputSchema = t.Object({
     user_id: t.String(),
     id: t.String()

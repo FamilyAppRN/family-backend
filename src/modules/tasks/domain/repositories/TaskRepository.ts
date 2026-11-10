@@ -6,5 +6,6 @@ export interface TaskRepository {
     findByHousehold(household_id: string, filters?: { status?: TaskEntity['status'], assignee_id?: string }): Promise<TaskEntity[]>;
     updateStatus(id: string, status: TaskEntity['status']): Promise<TaskEntity | null>;
     assign(id: string, assignee_id: string): Promise<TaskEntity | null>;
+    update(id: string, data: Partial<Pick<TaskEntity, 'title' | 'description' | 'due_date' | 'assignee_id'>>): Promise<TaskEntity | null>;
     delete(id: string): Promise<boolean>;
 }

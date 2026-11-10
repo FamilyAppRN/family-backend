@@ -6,6 +6,7 @@ import { CreateTaskUseCase } from '../../application/useCases/createTaskUseCase.
 import { ListTasksUseCase } from '../../application/useCases/listTasksUseCase.js';
 import { UpdateTaskStatusUseCase } from '../../application/useCases/updateTaskStatusUseCase.js';
 import { AssignTaskUseCase } from '../../application/useCases/assignTaskUseCase.js';
+import { UpdateTaskUseCase } from '../../application/useCases/updateTaskUseCase.js';
 import { DeleteTaskUseCase } from '../../application/useCases/deleteTaskUseCase.js';
 import { MongooseHouseholdRepository } from '../../../household/infrastructure/persistence/MongooseHouseholdRepository.js';
 import { GetHouseholdUseCase } from '../../../household/application/useCases/GetHouseholdUseCase.js';
@@ -13,7 +14,8 @@ import {
     CreateTaskInputSchema,
     ListTasksQuerySchema,
     UpdateTaskStatusBodySchema,
-    AssignTaskBodySchema
+    AssignTaskBodySchema,
+    UpdateTaskBodySchema
 } from '../../application/schemas/tasks.schemas.js';
 import { ApiResponse } from '../../../../shared/infrastructure/http/responseFormatter.js';
 import { swaggerSuccess, standardAuthErrors, standardValidationErrors, standardNotFoundErrors, customTaskErrors } from '../../../../shared/infrastructure/http/swaggerResponses.js';
@@ -25,6 +27,7 @@ const createTaskUseCase = new CreateTaskUseCase(taskRepository, getHouseholdUseC
 const listTasksUseCase = new ListTasksUseCase(taskRepository, getHouseholdUseCase);
 const updateTaskStatusUseCase = new UpdateTaskStatusUseCase(taskRepository, getHouseholdUseCase);
 const assignTaskUseCase = new AssignTaskUseCase(taskRepository, getHouseholdUseCase);
+const updateTaskUseCase = new UpdateTaskUseCase(taskRepository, getHouseholdUseCase);
 const deleteTaskUseCase = new DeleteTaskUseCase(taskRepository, getHouseholdUseCase);
 
 export const tasksRoutes = new Elysia({ prefix: '/tasks' })
@@ -64,6 +67,25 @@ export const tasksRoutes = new Elysia({ prefix: '/tasks' })
             responses: {
                 '200': swaggerSuccess("Tasks retrieved successfully", [{ id: "task-123", title: "Wash clothes", status: "pending" }]),
                 ...standardValidationErrors,
+                ...standardAuthErrors
+            }
+        }
+    })
+    .patch('/:id', async ({ params: { id }, body, user, set }: any) => {
+        const result = await updateTaskUseCase.execute({ ...body, id, user_id: user.id });
+
+        const response = ApiResponse.success(result, "Task updated successfully", 200);
+        set.status = response.status;
+        return response.body;
+    }, {
+        body: UpdateTaskBodySchema,
+        detail: {
+            tags: ['Tasks'],
+            summary: 'Update task title, description, due date or assignee',
+            responses: {
+                '200': swaggerSuccess("Task updated successfully", { id: "task-123", title: "Wash clothes", due_date: "2026-11-10T16:30:00.000Z" }),
+                ...standardValidationErrors,
+                '404': customTaskErrors.notFound,
                 ...standardAuthErrors
             }
         }

@@ -9,6 +9,7 @@ import { CreateTaskUseCase } from '../src/modules/tasks/application/useCases/cre
 import { ListTasksUseCase } from '../src/modules/tasks/application/useCases/listTasksUseCase.js';
 import { UpdateTaskStatusUseCase } from '../src/modules/tasks/application/useCases/updateTaskStatusUseCase.js';
 import { AssignTaskUseCase } from '../src/modules/tasks/application/useCases/assignTaskUseCase.js';
+import { UpdateTaskUseCase } from '../src/modules/tasks/application/useCases/updateTaskUseCase.js';
 import { DeleteTaskUseCase } from '../src/modules/tasks/application/useCases/deleteTaskUseCase.js';
 import { ListNotesUseCase } from '../src/modules/notes/application/listNotesUseCase.js';
 import { CreateNoteUseCase } from '../src/modules/notes/application/createNoteUseCase.js';
@@ -66,6 +67,12 @@ function makeTaskRepo() {
       const task = tasks.get(id);
       if (!task) return null;
       task.assignee_id = assignee_id;
+      return task;
+    },
+    async update(id: string, data: Partial<TaskEntity>) {
+      const task = tasks.get(id);
+      if (!task) return null;
+      Object.assign(task, data);
       return task;
     },
     async delete(id: string) { return tasks.delete(id); },
@@ -143,6 +150,36 @@ describe('tareas: membresía del hogar', () => {
 
     const task = await new CreateTaskUseCase(repo, getHousehold).execute({ household_id: HOUSE_A, creator_id: ANA, title: 'y' });
     await rejectsWithStatus(new AssignTaskUseCase(repo, getHousehold).execute({ id: task.id, user_id: ANA, assignee_id: BETO }), 404);
+  });
+});
+
+describe('tareas: editar', () => {
+  test('un miembro edita título, fecha y asignado; null borra el campo', async () => {
+    const repo = makeTaskRepo();
+    const getHousehold = makeGetHousehold();
+    const task = await new CreateTaskUseCase(repo, getHousehold).execute({
+      household_id: HOUSE_A, creator_id: ANA, title: 'Dentista', assignee_id: CARLOS, due_date: '2026-11-10T16:30:00.000Z',
+    });
+    const update = new UpdateTaskUseCase(repo, getHousehold);
+
+    const edited = await update.execute({ id: task.id, user_id: CARLOS, title: 'Llevar a Sofía al dentista', due_date: null });
+    assert.equal(edited.title, 'Llevar a Sofía al dentista');
+    assert.equal(edited.due_date, null);
+    assert.equal(edited.assignee_id, CARLOS);
+
+    const unassigned = await update.execute({ id: task.id, user_id: ANA, assignee_id: null });
+    assert.equal(unassigned.assignee_id, null);
+  });
+
+  test('no se edita desde otro hogar ni se asigna a un ajeno', async () => {
+    const repo = makeTaskRepo();
+    const getHousehold = makeGetHousehold();
+    const task = await new CreateTaskUseCase(repo, getHousehold).execute({ household_id: HOUSE_A, creator_id: ANA, title: 'x' });
+    const update = new UpdateTaskUseCase(repo, getHousehold);
+
+    await rejectsWithStatus(update.execute({ id: task.id, user_id: BETO, title: 'hack' }), 404);
+    await rejectsWithStatus(update.execute({ id: task.id, user_id: ANA, assignee_id: BETO }), 404);
+    assert.equal(repo.tasks.get(task.id)?.title, 'x');
   });
 });
 

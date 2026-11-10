@@ -49,6 +49,14 @@ export const tokenResponseSchema = t.Object({
   refreshToken: t.Optional(t.String()),
 });
 
+export const googleLoginRequestSchema = t.Object({
+  idToken: t.String({ minLength: 1, error: 'El ID token de Google es requerido' }),
+});
+
+export const appleLoginRequestSchema = t.Object({
+  identityToken: t.String({ minLength: 1, error: 'El token de identidad de Apple es requerido' }),
+});
+
 export const checkEmailRequestSchema = t.Object({
   email: t.String({ format: 'email', error: 'Email inválido' }),
 });

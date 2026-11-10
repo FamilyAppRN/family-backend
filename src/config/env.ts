@@ -9,7 +9,9 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(10000),
   MONGODB_URI: z.string().url(),
   REDIS_URI: z.string().url(),
-  FIREBASE_API_KEY: z.string().min(1, 'FIREBASE_API_KEY is required'),
+  FIREBASE_API_KEY: z.string().min(1, 'FIREBASE_API_KEY is required').optional(),
+  GOOGLE_CLIENT_ID: z.string().min(1, 'GOOGLE_CLIENT_ID is required').optional(),
+  APPLE_SERVICE_ID: z.string().min(1, 'APPLE_SERVICE_ID is required').optional(),
   CORS_ORIGIN: z.string().default('*'),
 });
 

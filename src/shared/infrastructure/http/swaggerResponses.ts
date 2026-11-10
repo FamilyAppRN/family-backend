@@ -75,6 +75,7 @@ export const customAuthErrors = {
     emailExists: swaggerError('Email ya registrado', { code: 'EMAIL_ALREADY_EXISTS', category: 'CONFLICT' }),
     userDisabled: swaggerError('El usuario ha sido deshabilitado', { code: 'USER_DISABLED', category: 'AUTHENTICATION' }),
     weakPassword: swaggerError('La contraseña debe tener al menos 6 caracteres', { code: 'INVALID_PASSWORD', category: 'VALIDATION' }),
+    internalError: swaggerError('Error interno del servidor', { code: 'INTERNAL_ERROR', category: 'INTERNAL' }),
 };
 
 export const customHouseholdErrors = {

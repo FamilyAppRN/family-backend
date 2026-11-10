@@ -1,4 +1,5 @@
 import { Elysia } from 'elysia';
+import { emitHouseholdUpdated } from '../../../../sockets/emitter.js';
 import { authMiddleware } from '../../../../middleware/auth.middleware.js';
 
 import { MongooseTaskRepository } from '../persistence/MongooseTaskRepository.js';
@@ -38,6 +39,7 @@ export const tasksRoutes = new Elysia({ prefix: '/tasks' })
             creator_id: user.id
         });
 
+        emitHouseholdUpdated(result?.household_id, 'tasks', user.id);
         const response = ApiResponse.success(result, "Task created successfully", 201);
         set.status = response.status;
         return response.body;
@@ -74,6 +76,7 @@ export const tasksRoutes = new Elysia({ prefix: '/tasks' })
     .patch('/:id', async ({ params: { id }, body, user, set }: any) => {
         const result = await updateTaskUseCase.execute({ ...body, id, user_id: user.id });
 
+        emitHouseholdUpdated(result?.household_id, 'tasks', user.id);
         const response = ApiResponse.success(result, "Task updated successfully", 200);
         set.status = response.status;
         return response.body;
@@ -93,6 +96,7 @@ export const tasksRoutes = new Elysia({ prefix: '/tasks' })
     .patch('/:id/status', async ({ params: { id }, body, user, set }: any) => {
         const result = await updateTaskStatusUseCase.execute({ id, user_id: user.id, status: body.status });
 
+        emitHouseholdUpdated(result?.household_id, 'tasks', user.id);
         const response = ApiResponse.success(result, "Task status updated successfully", 200);
         set.status = response.status;
         return response.body;
@@ -112,6 +116,7 @@ export const tasksRoutes = new Elysia({ prefix: '/tasks' })
     .patch('/:id/assign', async ({ params: { id }, body, user, set }: any) => {
         const result = await assignTaskUseCase.execute({ id, user_id: user.id, assignee_id: body.assignee_id });
 
+        emitHouseholdUpdated(result?.household_id, 'tasks', user.id);
         const response = ApiResponse.success(result, "Task assigned successfully", 200);
         set.status = response.status;
         return response.body;
@@ -129,7 +134,10 @@ export const tasksRoutes = new Elysia({ prefix: '/tasks' })
         }
     })
     .delete('/:id', async ({ params: { id }, user, set }: any) => {
+        // El hogar se lee antes: después de borrar ya no hay tarea que consultar.
+        const task = await taskRepository.findById(id);
         const result = await deleteTaskUseCase.execute({ id, user_id: user.id });
+        emitHouseholdUpdated(task?.household_id, 'tasks', user.id);
 
         const response = ApiResponse.success(result, "Task deleted successfully", 200);
         set.status = response.status;

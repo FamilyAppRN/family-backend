@@ -1,4 +1,5 @@
 import { Elysia, t } from 'elysia';
+import { emitHouseholdUpdated } from '../../../../sockets/emitter.js';
 import { authMiddleware } from '../../../../middleware/auth.middleware.js';
 import { ApiResponse } from '../../../../shared/infrastructure/http/responseFormatter.js';
 import { swaggerSuccess, standardAuthErrors, standardValidationErrors, standardNotFoundErrors, customShoppingErrors } from '../../../../shared/infrastructure/http/swaggerResponses.js';
@@ -35,6 +36,7 @@ export const shoppingRoutes = new Elysia({ prefix: '/shopping', detail: { tags: 
       created_by: user.id
     });
 
+    emitHouseholdUpdated(household_id, 'shopping', user.id);
     const response = ApiResponse.success(result, "Shopping list created", 201);
     set.status = response.status;
     return response.body;
@@ -84,6 +86,7 @@ export const shoppingRoutes = new Elysia({ prefix: '/shopping', detail: { tags: 
       added_by: user.id
     });
 
+    emitHouseholdUpdated((result as any)?.household_id, 'shopping', user.id);
     const response = ApiResponse.success(result, "Item added to list", 201);
     set.status = response.status;
     return response.body;
@@ -111,6 +114,7 @@ export const shoppingRoutes = new Elysia({ prefix: '/shopping', detail: { tags: 
       userId: user.id
     });
 
+    emitHouseholdUpdated((result as any)?.household_id, 'shopping', user.id);
     const response = ApiResponse.success(result, "Item status toggled", 200);
     set.status = response.status;
     return response.body;
@@ -134,6 +138,7 @@ export const shoppingRoutes = new Elysia({ prefix: '/shopping', detail: { tags: 
       user_id: user.id
     });
 
+    emitHouseholdUpdated((result as any)?.active_list?.household_id, 'shopping', user.id);
     const response = ApiResponse.success(result, 'Purchase finalized', 200);
     set.status = response.status;
     return response.body;
@@ -156,6 +161,7 @@ export const shoppingRoutes = new Elysia({ prefix: '/shopping', detail: { tags: 
       user_id: user.id
     });
 
+    emitHouseholdUpdated((result as any)?.household_id, 'shopping', user.id);
     const response = ApiResponse.success(result, "Shopping list updated", 200);
     set.status = response.status;
     return response.body;
@@ -174,11 +180,14 @@ export const shoppingRoutes = new Elysia({ prefix: '/shopping', detail: { tags: 
     }
   })
   .delete('/:listId', async ({ params, user, set }: any) => {
+    // El hogar se lee antes: después de borrar ya no hay lista que consultar.
+    const list = await shoppingRepository.getListById(params.listId);
     await deleteShoppingListUseCase.execute({
       list_id: params.listId,
       user_id: user.id
     });
 
+    emitHouseholdUpdated(list?.household_id, 'shopping', user.id);
     const response = ApiResponse.success(null, "Shopping list deleted", 200);
     set.status = response.status;
     return response.body;

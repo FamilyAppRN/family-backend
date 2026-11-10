@@ -28,3 +28,8 @@ export function getIO(): SocketServer {
   }
   return io;
 }
+
+/** Como getIO, pero devuelve null si Socket.IO no arrancó en vez de fallar. */
+export function getIOIfReady(): SocketServer | null {
+  return io;
+}

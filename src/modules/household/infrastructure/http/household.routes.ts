@@ -1,4 +1,5 @@
 import { Elysia, t } from 'elysia';
+import { emitHouseholdUpdated, emitMemberRemoved } from '../../../../sockets/emitter.js';
 import { authMiddleware } from '../../../../middleware/auth.middleware.js';
 import { ApiResponse } from '../../../../shared/infrastructure/http/responseFormatter.js';
 import { swaggerSuccess, swaggerError, standardAuthErrors, standardValidationErrors, standardNotFoundErrors, customHouseholdErrors } from '../../../../shared/infrastructure/http/swaggerResponses.js';
@@ -79,6 +80,7 @@ export const householdRoutes = new Elysia({ prefix: '/households', detail: { tag
         settings: (body as any).settings
     };
     const result = await useCase.execute(data);
+    emitHouseholdUpdated(params.householdId, 'household', user.id);
     const response = ApiResponse.success(result, "Hogar actualizado");
     set.status = response.status;
     return response.body;
@@ -110,6 +112,7 @@ export const householdRoutes = new Elysia({ prefix: '/households', detail: { tag
         userName: user.name
     };
     const result = await useCase.execute(data);
+    emitHouseholdUpdated((result as any)?.id, 'household', user.id);
     const response = ApiResponse.success(result, "Te has unido al hogar");
     set.status = response.status;
     return response.body;
@@ -164,6 +167,8 @@ export const householdRoutes = new Elysia({ prefix: '/households', detail: { tag
         targetUserId: params.targetUserId
     };
     const result = await useCase.execute(data);
+    emitHouseholdUpdated(params.householdId, 'household', user.id);
+    await emitMemberRemoved(params.householdId, params.targetUserId, user.id);
     const response = ApiResponse.success(result, "Miembro eliminado del hogar");
     set.status = response.status;
     return response.body;

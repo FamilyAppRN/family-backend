@@ -1,4 +1,5 @@
 import { Elysia, t } from 'elysia';
+import { emitHouseholdUpdated } from '../../../../sockets/emitter.js';
 import { authMiddleware } from '../../../../middleware/auth.middleware.js';
 import { ApiResponse } from '../../../../shared/infrastructure/http/responseFormatter.js';
 import { swaggerSuccess, standardAuthErrors, standardValidationErrors, standardNotFoundErrors, customNoteErrors } from '../../../../shared/infrastructure/http/swaggerResponses.js';
@@ -45,6 +46,7 @@ export const notesRoutes = new Elysia({ prefix: '/notes', detail: { tags: ['Note
       userId: user.id
     });
 
+    emitHouseholdUpdated(params.householdId, 'notes', user.id);
     const response = ApiResponse.success(result, "Nota creada exitosamente", 201);
     set.status = response.status;
     return response.body;
@@ -68,6 +70,7 @@ export const notesRoutes = new Elysia({ prefix: '/notes', detail: { tags: ['Note
       userId: user.id
     });
 
+    emitHouseholdUpdated(params.householdId, 'notes', user.id);
     const response = ApiResponse.success(result, "Nota actualizada exitosamente", 200);
     set.status = response.status;
     return response.body;
@@ -92,6 +95,7 @@ export const notesRoutes = new Elysia({ prefix: '/notes', detail: { tags: ['Note
       userId: user.id
     });
 
+    emitHouseholdUpdated(params.householdId, 'notes', user.id);
     const response = ApiResponse.success(result, "Nota eliminada exitosamente", 200);
     set.status = response.status;
     return response.body;

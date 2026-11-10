@@ -50,9 +50,14 @@ export class MongooseAuthRepository implements AuthRepository {
         });
     }
 
-    async addPushToken(userId: string, token: string): Promise<void> {
+    /**
+     * Guarda el token una sola vez. $addToSet no servía: registered_at cambia
+     * en cada llamada, así que el mismo token se repetía.
+     */
+    async addPushToken(userId: string, token: string, deviceLabel?: string): Promise<void> {
+        await User.findByIdAndUpdate(userId, { $pull: { push_tokens: { token } } as any });
         await User.findByIdAndUpdate(userId, {
-            $addToSet: { push_tokens: { token, device_label: 'default', registered_at: new Date() } } as any
+            $push: { push_tokens: { token, device_label: deviceLabel || 'default', registered_at: new Date() } } as any
         });
     }
 }

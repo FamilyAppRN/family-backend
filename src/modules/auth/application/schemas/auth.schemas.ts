@@ -22,6 +22,8 @@ export const refreshTokenRequestSchema = t.Object({
 
 export const pushTokenRequestSchema = t.Object({
   token: t.String({ minLength: 1, error: 'El token es requerido' }),
+  /** Modelo del equipo, para reconocer cada dispositivo. */
+  device_label: t.Optional(t.String({ maxLength: 100 })),
 });
 
 // Output Schemas para sanitización (Value.Clean)

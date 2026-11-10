@@ -222,7 +222,7 @@ export const authRoutes = new Elysia({ detail: { tags: ['Auth'] } })
             .patch('/users/me/push-token', async (ctx: any) => {
                 const { user, body, set } = ctx;
                 const repository = new MongooseAuthRepository();
-                await repository.addPushToken(user.id, (body as any).token);
+                await repository.addPushToken(user.id, (body as any).token, (body as any).device_label);
                 
                 const response = ApiResponse.success(null, "Push token actualizado", 200);
                 set.status = response.status;

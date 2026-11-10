@@ -1,14 +1,9 @@
 import { GetHouseholdUseCase } from '../../../household/application/useCases/GetHouseholdUseCase.js';
+import { assertHouseholdMembership } from '../../../household/application/services/HouseholdMembership.js';
 import { ShoppingRepository } from '../../domain/repositories/ShoppingRepository.js';
 import { ListNotFoundError } from '../../domain/errors/ShoppingErrors.js';
 
-export async function assertHouseholdMembership(
-  getHouseholdUseCase: GetHouseholdUseCase,
-  householdId: string,
-  userId: string,
-): Promise<void> {
-  await getHouseholdUseCase.execute({ householdId, userId });
-}
+export { assertHouseholdMembership };
 
 export async function getAuthorizedList(
   shoppingRepository: ShoppingRepository,

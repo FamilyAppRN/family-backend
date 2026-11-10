@@ -2,6 +2,8 @@ import { Elysia, t } from 'elysia';
 import { authMiddleware } from '../../../../middleware/auth.middleware.js';
 import { ApiResponse } from '../../../../shared/infrastructure/http/responseFormatter.js';
 import { swaggerSuccess, standardAuthErrors, standardValidationErrors, standardNotFoundErrors, customNoteErrors } from '../../../../shared/infrastructure/http/swaggerResponses.js';
+import { MongooseHouseholdRepository } from '../../../household/infrastructure/persistence/MongooseHouseholdRepository.js';
+import { GetHouseholdUseCase } from '../../../household/application/useCases/GetHouseholdUseCase.js';
 import { MongooseNoteRepository } from '../persistence/MongooseNoteRepository.js';
 import { CreateNoteUseCase } from '../../application/createNoteUseCase.js';
 import { ListNotesUseCase } from '../../application/listNotesUseCase.js';
@@ -9,12 +11,18 @@ import { UpdateNoteUseCase } from '../../application/updateNoteUseCase.js';
 import { DeleteNoteUseCase } from '../../application/deleteNoteUseCase.js';
 import { createNoteRequestSchema, updateNoteRequestSchema } from '../../application/schemas/notes.schemas.js';
 
+const noteRepository = new MongooseNoteRepository();
+const getHouseholdUseCase = new GetHouseholdUseCase(new MongooseHouseholdRepository());
+
+const listNotesUseCase = new ListNotesUseCase(noteRepository, getHouseholdUseCase);
+const createNoteUseCase = new CreateNoteUseCase(noteRepository, getHouseholdUseCase);
+const updateNoteUseCase = new UpdateNoteUseCase(noteRepository, getHouseholdUseCase);
+const deleteNoteUseCase = new DeleteNoteUseCase(noteRepository, getHouseholdUseCase);
+
 export const notesRoutes = new Elysia({ prefix: '/notes', detail: { tags: ['Notes'] } })
   .use(authMiddleware)
-  .get('/:householdId', async ({ params, set }) => {
-    const repository = new MongooseNoteRepository();
-    const useCase = new ListNotesUseCase(repository);
-    const result = await useCase.execute({ householdId: params.householdId });
+  .get('/:householdId', async ({ params, user, set }: any) => {
+    const result = await listNotesUseCase.execute({ householdId: params.householdId, userId: user.id });
 
     const response = ApiResponse.success(result, "Notas obtenidas exitosamente", 200);
     set.status = response.status;
@@ -31,9 +39,7 @@ export const notesRoutes = new Elysia({ prefix: '/notes', detail: { tags: ['Note
     }
   })
   .post('/:householdId', async ({ params, user, body, set }: any) => {
-    const repository = new MongooseNoteRepository();
-    const useCase = new CreateNoteUseCase(repository);
-    const result = await useCase.execute({
+    const result = await createNoteUseCase.execute({
       ...body,
       householdId: params.householdId,
       userId: user.id
@@ -55,9 +61,7 @@ export const notesRoutes = new Elysia({ prefix: '/notes', detail: { tags: ['Note
     }
   })
   .patch('/:householdId/:noteId', async ({ params, user, body, set }: any) => {
-    const repository = new MongooseNoteRepository();
-    const useCase = new UpdateNoteUseCase(repository);
-    const result = await useCase.execute({
+    const result = await updateNoteUseCase.execute({
       ...body,
       householdId: params.householdId,
       noteId: params.noteId,
@@ -82,9 +86,7 @@ export const notesRoutes = new Elysia({ prefix: '/notes', detail: { tags: ['Note
     }
   })
   .delete('/:householdId/:noteId', async ({ params, user, set }: any) => {
-    const repository = new MongooseNoteRepository();
-    const useCase = new DeleteNoteUseCase(repository);
-    const result = await useCase.execute({
+    const result = await deleteNoteUseCase.execute({
       householdId: params.householdId,
       noteId: params.noteId,
       userId: user.id

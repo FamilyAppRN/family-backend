@@ -32,7 +32,14 @@ export const CreateTaskInputSchema = t.Object({
 
 export const CreateTaskOutputSchema = TaskSchema;
 
+export const ListTasksQuerySchema = t.Object({
+    household_id: t.String(),
+    status: t.Optional(TaskStatusSchema),
+    assignee_id: t.Optional(t.String())
+});
+
 export const ListTasksInputSchema = t.Object({
+    user_id: t.String(),
     household_id: t.String(),
     status: t.Optional(TaskStatusSchema),
     assignee_id: t.Optional(t.String())
@@ -40,14 +47,24 @@ export const ListTasksInputSchema = t.Object({
 
 export const ListTasksOutputSchema = t.Array(TaskSchema);
 
+export const UpdateTaskStatusBodySchema = t.Object({
+    status: TaskStatusSchema
+});
+
 export const UpdateTaskStatusInputSchema = t.Object({
+    user_id: t.String(),
     id: t.String(),
     status: TaskStatusSchema
 });
 
 export const UpdateTaskStatusOutputSchema = TaskSchema;
 
+export const AssignTaskBodySchema = t.Object({
+    assignee_id: t.String()
+});
+
 export const AssignTaskInputSchema = t.Object({
+    user_id: t.String(),
     id: t.String(),
     assignee_id: t.String()
 });
@@ -55,6 +72,7 @@ export const AssignTaskInputSchema = t.Object({
 export const AssignTaskOutputSchema = TaskSchema;
 
 export const DeleteTaskInputSchema = t.Object({
+    user_id: t.String(),
     id: t.String()
 });
 

@@ -7,23 +7,30 @@ import { ListTasksUseCase } from '../../application/useCases/listTasksUseCase.js
 import { UpdateTaskStatusUseCase } from '../../application/useCases/updateTaskStatusUseCase.js';
 import { AssignTaskUseCase } from '../../application/useCases/assignTaskUseCase.js';
 import { DeleteTaskUseCase } from '../../application/useCases/deleteTaskUseCase.js';
+import { MongooseHouseholdRepository } from '../../../household/infrastructure/persistence/MongooseHouseholdRepository.js';
+import { GetHouseholdUseCase } from '../../../household/application/useCases/GetHouseholdUseCase.js';
 import {
     CreateTaskInputSchema,
-    ListTasksInputSchema,
-    UpdateTaskStatusInputSchema,
-    AssignTaskInputSchema,
-    DeleteTaskInputSchema
+    ListTasksQuerySchema,
+    UpdateTaskStatusBodySchema,
+    AssignTaskBodySchema
 } from '../../application/schemas/tasks.schemas.js';
 import { ApiResponse } from '../../../../shared/infrastructure/http/responseFormatter.js';
 import { swaggerSuccess, standardAuthErrors, standardValidationErrors, standardNotFoundErrors, customTaskErrors } from '../../../../shared/infrastructure/http/swaggerResponses.js';
 
+const taskRepository = new MongooseTaskRepository();
+const getHouseholdUseCase = new GetHouseholdUseCase(new MongooseHouseholdRepository());
+
+const createTaskUseCase = new CreateTaskUseCase(taskRepository, getHouseholdUseCase);
+const listTasksUseCase = new ListTasksUseCase(taskRepository, getHouseholdUseCase);
+const updateTaskStatusUseCase = new UpdateTaskStatusUseCase(taskRepository, getHouseholdUseCase);
+const assignTaskUseCase = new AssignTaskUseCase(taskRepository, getHouseholdUseCase);
+const deleteTaskUseCase = new DeleteTaskUseCase(taskRepository, getHouseholdUseCase);
+
 export const tasksRoutes = new Elysia({ prefix: '/tasks' })
     .use(authMiddleware)
     .post('/', async ({ body, user, set }: any) => {
-        const repo = new MongooseTaskRepository();
-        const useCase = new CreateTaskUseCase(repo);
-
-        const result = await useCase.execute({
+        const result = await createTaskUseCase.execute({
             ...body,
             creator_id: user.id
         });
@@ -43,17 +50,14 @@ export const tasksRoutes = new Elysia({ prefix: '/tasks' })
             }
         }
     })
-    .get('/', async ({ query, set }) => {
-        const repo = new MongooseTaskRepository();
-        const useCase = new ListTasksUseCase(repo);
-
-        const result = await useCase.execute(query);
+    .get('/', async ({ query, user, set }: any) => {
+        const result = await listTasksUseCase.execute({ ...query, user_id: user.id });
 
         const response = ApiResponse.success(result, "Tasks retrieved successfully", 200);
         set.status = response.status;
         return response.body;
     }, {
-        query: ListTasksInputSchema,
+        query: ListTasksQuerySchema,
         detail: { 
             tags: ['Tasks'], 
             summary: 'List tasks',
@@ -64,17 +68,14 @@ export const tasksRoutes = new Elysia({ prefix: '/tasks' })
             }
         }
     })
-    .patch('/:id/status', async ({ params: { id }, body, set }) => {
-        const repo = new MongooseTaskRepository();
-        const useCase = new UpdateTaskStatusUseCase(repo);
-
-        const result = await useCase.execute({ id, ...(body as any) });
+    .patch('/:id/status', async ({ params: { id }, body, user, set }: any) => {
+        const result = await updateTaskStatusUseCase.execute({ id, user_id: user.id, status: body.status });
 
         const response = ApiResponse.success(result, "Task status updated successfully", 200);
         set.status = response.status;
         return response.body;
     }, {
-        body: UpdateTaskStatusInputSchema,
+        body: UpdateTaskStatusBodySchema,
         detail: { 
             tags: ['Tasks'], 
             summary: 'Update task status',
@@ -86,17 +87,14 @@ export const tasksRoutes = new Elysia({ prefix: '/tasks' })
             }
         }
     })
-    .patch('/:id/assign', async ({ params: { id }, body, set }) => {
-        const repo = new MongooseTaskRepository();
-        const useCase = new AssignTaskUseCase(repo);
-
-        const result = await useCase.execute({ id, ...(body as any) });
+    .patch('/:id/assign', async ({ params: { id }, body, user, set }: any) => {
+        const result = await assignTaskUseCase.execute({ id, user_id: user.id, assignee_id: body.assignee_id });
 
         const response = ApiResponse.success(result, "Task assigned successfully", 200);
         set.status = response.status;
         return response.body;
     }, {
-        body: AssignTaskInputSchema,
+        body: AssignTaskBodySchema,
         detail: { 
             tags: ['Tasks'], 
             summary: 'Assign a task to a user',
@@ -108,11 +106,8 @@ export const tasksRoutes = new Elysia({ prefix: '/tasks' })
             }
         }
     })
-    .delete('/:id', async ({ params: { id }, set }) => {
-        const repo = new MongooseTaskRepository();
-        const useCase = new DeleteTaskUseCase(repo);
-
-        const result = await useCase.execute({ id });
+    .delete('/:id', async ({ params: { id }, user, set }: any) => {
+        const result = await deleteTaskUseCase.execute({ id, user_id: user.id });
 
         const response = ApiResponse.success(result, "Task deleted successfully", 200);
         set.status = response.status;

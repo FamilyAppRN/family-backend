@@ -1,36 +1,39 @@
+import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import { toNodeHandler } from 'srvx/node';
 import { app } from './app.js';
 import { connectDB } from './config/db.js';
-import { connectRedis } from './config/redis.js';
 import { initSocket } from './config/socket.js';
 import { registerSocketEvents } from './sockets/index.js';
 import { ENV } from './config/env.js';
-import { createServer } from 'node:http';
 import { initFirebase } from './config/firebase.js';
 
+/**
+ * Un solo servidor HTTP para la API y el tiempo real (Render expone un único
+ * puerto). Elysia atiende las peticiones normales vía srvx, igual que su
+ * adaptador de Node; Socket.IO se cuelga del mismo servidor y solo toma
+ * /socket.io/. No se usa app.listen() porque ese servidor (crossws) también
+ * intercepta los upgrades de WebSocket y competiría con Socket.IO.
+ */
 async function bootstrap() {
   try {
-    // 1. Connect databases
     await connectDB();
-    // connectRedis();
-
-    // Initialize Firebase Admin
     initFirebase();
 
-    // 2. Start Elysia on the primary port
-    app.listen({ port: ENV.PORT, hostname: '0.0.0.0' }, () => {
-      console.log(`🦊 Elysia API server running on http://0.0.0.0:${ENV.PORT}`);
+    // srvx tipa la petición como HTTP/1 y HTTP/2 a la vez; este servidor es HTTP/1.
+    const handleHttp = toNodeHandler(app.fetch as Parameters<typeof toNodeHandler>[0]) as unknown as (
+      req: IncomingMessage,
+      res: ServerResponse,
+    ) => Promise<unknown>;
+    const httpServer = createServer((req, res) => {
+      void handleHttp(req, res);
     });
 
-    // 3. Create a separate Node HTTP server for Socket.IO on port 5000
-    // const socketPort = 5000;
-    // const socketHttpServer = createServer();
-    // const io = initSocket(socketHttpServer as any);
-    // registerSocketEvents(io);
+    const io = initSocket(httpServer);
+    registerSocketEvents(io);
 
-    // socketHttpServer.listen(socketPort, () => {
-    //   console.log(`🔌 Socket.IO server running on http://localhost:${socketPort}`);
-    // });
-
+    httpServer.listen(ENV.PORT, '0.0.0.0', () => {
+      console.log(`🦊 API y Socket.IO escuchando en http://0.0.0.0:${ENV.PORT}`);
+    });
   } catch (error) {
     console.error('❌ Server bootstrap failed:', error);
     process.exit(1);

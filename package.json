@@ -7,7 +7,7 @@
     "dev": "tsx watch src/index.ts",
     "build": "node --max-old-space-size=450 node_modules/typescript/bin/tsc",
     "start": "node dist/index.js",
-    "test": "tsx --test tests/membership.test.ts"
+    "test": "tsx --test tests/membership.test.ts tests/push.test.ts"
   },
   "keywords": [],
   "author": "",
@@ -20,7 +20,6 @@
     "@sinclair/typebox": "^0.34.49",
     "dotenv": "^17.4.2",
     "elysia": "^1.4.29",
-    "expo-server-sdk": "^6.1.0",
     "firebase-admin": "^13.10.0",
     "google-auth-library": "^10.9.1",
     "ioredis": "^5.11.1",

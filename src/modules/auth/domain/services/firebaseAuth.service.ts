@@ -55,6 +55,9 @@ export interface AppleTokenPayload {
 
 export class FirebaseAuthService {
   private static getApiKey(): string {
+    if (!ENV.FIREBASE_API_KEY) {
+      throw new ApplicationError(500, 'FIREBASE_API_KEY no está configurada', 'AUTH_SERVICE_ERROR', 'INTERNAL');
+    }
     return ENV.FIREBASE_API_KEY;
   }
 

@@ -6,6 +6,7 @@ import { initSocket } from './config/socket.js';
 import { registerSocketEvents } from './sockets/index.js';
 import { ENV } from './config/env.js';
 import { initFirebase } from './config/firebase.js';
+import { startTaskReminderCron } from './jobs/taskReminders.js';
 
 /**
  * Un solo servidor HTTP para la API y el tiempo real (Render expone un único
@@ -18,6 +19,7 @@ async function bootstrap() {
   try {
     await connectDB();
     initFirebase();
+    startTaskReminderCron();
 
     // srvx tipa la petición como HTTP/1 y HTTP/2 a la vez; este servidor es HTTP/1.
     const handleHttp = toNodeHandler(app.fetch as Parameters<typeof toNodeHandler>[0]) as unknown as (

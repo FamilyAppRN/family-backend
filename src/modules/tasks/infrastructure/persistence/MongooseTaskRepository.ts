@@ -52,7 +52,9 @@ export class MongooseTaskRepository implements TaskRepository {
     }
 
     async update(id: string, data: Partial<Pick<TaskEntity, 'title' | 'description' | 'due_date' | 'assignee_id'>>): Promise<TaskEntity | null> {
-        const updatedTask = await Task.findByIdAndUpdate(id, data, { new: true }).lean();
+        // Si cambia la fecha, la tarea puede recordarse otra vez.
+        const changes = 'due_date' in data ? { ...data, reminder_sent_at: null } : data;
+        const updatedTask = await Task.findByIdAndUpdate(id, changes, { new: true }).lean();
         if (!updatedTask) return null;
         return this.mapToEntity(updatedTask);
     }

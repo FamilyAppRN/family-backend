@@ -2,6 +2,9 @@ import { Elysia, t } from 'elysia';
 import { emitHouseholdUpdated, emitMemberRemoved } from '../../../../sockets/emitter.js';
 import { notifyGoingShopping, notifyMemberJoined } from '../../../../shared/push/triggers.js';
 import { assertHouseholdMembership } from '../../application/services/HouseholdMembership.js';
+import { AttemptLimiter } from '../../../../shared/infrastructure/http/AttemptLimiter.js';
+import { ApplicationError } from '../../../../shared/domain/error.js';
+import { InvalidInviteCodeError } from '../../domain/errors/HouseholdErrors.js';
 import { authMiddleware } from '../../../../middleware/auth.middleware.js';
 import { ApiResponse } from '../../../../shared/infrastructure/http/responseFormatter.js';
 import { swaggerSuccess, swaggerError, standardAuthErrors, standardValidationErrors, standardNotFoundErrors, customHouseholdErrors } from '../../../../shared/infrastructure/http/swaggerResponses.js';
@@ -18,6 +21,9 @@ import { LoggingEmailService } from '../../../../shared/infrastructure/email/Log
 
 const repository = new MongooseHouseholdRepository();
 const emailService = new LoggingEmailService();
+
+// Códigos de 6 caracteres: se limitan los fallos para que no se puedan adivinar.
+const joinLimiter = new AttemptLimiter(5, 15 * 60 * 1000);
 
 export const householdRoutes = new Elysia({ prefix: '/households', detail: { tags: ['Households'] } })
   .use(authMiddleware)
@@ -108,13 +114,23 @@ export const householdRoutes = new Elysia({ prefix: '/households', detail: { tag
   })
 
   .post('/join', async ({ body, user, set }: any) => {
+    if (joinLimiter.isBlocked(user.id)) {
+        throw new ApplicationError(429, 'Demasiados códigos incorrectos. Espera unos minutos e inténtalo de nuevo.', 'TOO_MANY_JOIN_ATTEMPTS', 'BUSINESS');
+    }
     const useCase = new AddMemberUseCase(repository);
     const data = {
         inviteCode: (body as any).inviteCode,
         userId: user.id,
         userName: user.name
     };
-    const result = await useCase.execute(data);
+    let result;
+    try {
+        result = await useCase.execute(data);
+    } catch (error) {
+        if (error instanceof InvalidInviteCodeError) joinLimiter.recordFailure(user.id);
+        throw error;
+    }
+    joinLimiter.reset(user.id);
     emitHouseholdUpdated((result as any)?.id, 'household', user.id);
     void notifyMemberJoined(
       (result as any)?.id,

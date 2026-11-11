@@ -12,6 +12,7 @@ import { GetHouseholdUseCase } from '../../application/useCases/GetHouseholdUseC
 import { UpdateHouseholdUseCase } from '../../application/useCases/UpdateHouseholdUseCase.js';
 import { AddMemberUseCase } from '../../application/useCases/AddMemberUseCase.js';
 import { RemoveMemberUseCase } from '../../application/useCases/RemoveMemberUseCase.js';
+import { RegenerateInviteCodeUseCase } from '../../application/useCases/RegenerateInviteCodeUseCase.js';
 import { SendHouseholdInvitationUseCase } from '../../application/useCases/SendHouseholdInvitationUseCase.js';
 import { LoggingEmailService } from '../../../../shared/infrastructure/email/LoggingEmailService.js';
 
@@ -164,6 +165,27 @@ export const householdRoutes = new Elysia({ prefix: '/households', detail: { tag
             ...standardAuthErrors
         }
     }
+  })
+
+  .post('/:householdId/invite-code/regenerate', async ({ params, user, set }: any) => {
+    const result = await new RegenerateInviteCodeUseCase(repository).execute({
+      householdId: params.householdId,
+      userId: user.id,
+    });
+    emitHouseholdUpdated(params.householdId, 'household', user.id);
+    const response = ApiResponse.success(result, "Código de invitación renovado");
+    set.status = response.status;
+    return response.body;
+  }, {
+      detail: {
+          summary: 'Generar un código de invitación nuevo (el anterior deja de servir)',
+          responses: {
+              '200': swaggerSuccess("Código de invitación renovado", { id: "hh-123", invite_code: "7F3A9C" }),
+              '404': customHouseholdErrors.notFound,
+              '403': customHouseholdErrors.notAdmin,
+              ...standardAuthErrors
+          }
+      }
   })
 
   .post('/:householdId/going-shopping', async ({ params, user, set }: any) => {

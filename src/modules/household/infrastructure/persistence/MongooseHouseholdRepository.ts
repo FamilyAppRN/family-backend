@@ -1,3 +1,4 @@
+import { HouseholdNotFoundError } from '../../domain/errors/HouseholdErrors.js';
 import { HouseholdRepository } from '../../domain/repositories/HouseholdRepository.js';
 import { HouseholdEntity, HouseholdMemberEntity } from '../../domain/entities/HouseholdEntity.js';
 import { Household } from '../../../../models/Household.js';
@@ -64,6 +65,12 @@ export class MongooseHouseholdRepository implements HouseholdRepository {
         const household = await Household.findByIdAndUpdate(id, { $set: updateDoc }, { new: true }).lean();
         if (!household) throw new Error("Household not found for update");
         return this.mapToEntity(household);
+    }
+
+    async setInviteCode(id: string, inviteCode: string): Promise<HouseholdEntity> {
+        const doc = await Household.findByIdAndUpdate(id, { invite_code: inviteCode }, { new: true }).lean();
+        if (!doc) throw new HouseholdNotFoundError();
+        return this.mapToEntity(doc);
     }
 
     async addMember(id: string, member: HouseholdMemberEntity): Promise<HouseholdEntity> {

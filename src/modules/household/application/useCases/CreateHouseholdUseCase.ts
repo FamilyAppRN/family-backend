@@ -3,7 +3,7 @@ import { HouseholdEntity } from '../../domain/entities/HouseholdEntity.js';
 import { HouseholdRepository } from '../../domain/repositories/HouseholdRepository.js';
 import { CreateHouseholdInputSchema, HouseholdSchema } from '../schemas/household.schemas.js';
 import { Static } from '@sinclair/typebox';
-import crypto from 'crypto';
+import { generateInviteCode } from '../../domain/services/inviteCode.js';
 
 type Input = Static<typeof CreateHouseholdInputSchema>;
 type Output = Static<typeof HouseholdSchema>;
@@ -18,7 +18,7 @@ export class CreateHouseholdUseCase extends UseCase<any, any> {
 
     protected async implementation(data: Input): Promise<Output> {
         // Generate a random 6-character invite code
-        const inviteCode = crypto.randomBytes(3).toString('hex').toUpperCase();
+        const inviteCode = generateInviteCode();
 
         const householdData = {
             name: data.name,

@@ -1,6 +1,7 @@
 import { Static } from '@sinclair/typebox';
 import { UseCase } from '../../../../shared/application/useCase.js';
 import { EmailService } from '../../../../shared/domain/services/EmailService.js';
+import { buildInvitationEmail } from '../services/invitationEmail.js';
 import { HouseholdNotFoundError, NotHouseholdAdminError } from '../../domain/errors/HouseholdErrors.js';
 import { HouseholdRepository } from '../../domain/repositories/HouseholdRepository.js';
 import {
@@ -34,18 +35,12 @@ export class SendHouseholdInvitationUseCase extends UseCase<Input, Output> {
       throw new NotHouseholdAdminError();
     }
 
-    await this.emailService.send({
+    await this.emailService.send(buildInvitationEmail({
       to: data.recipientEmail,
-      subject: `Invitación para unirte a ${household.name}`,
-      text: [
-        `Hola,`,
-        '',
-        `${data.requestingUserName} te invitó a unirte al hogar "${household.name}" en Family Collab.`,
-        `Usa este código de invitación para unirte: ${household.invite_code}`,
-        '',
-        'Inicia sesión en la app y usa el código para unirte al hogar.'
-      ].join('\n')
-    });
+      inviterName: data.requestingUserName,
+      householdName: household.name,
+      inviteCode: household.invite_code,
+    }));
 
     return { recipientEmail: data.recipientEmail };
   }

@@ -14,6 +14,9 @@ const envSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().min(1, 'GOOGLE_CLIENT_ID is required').optional(),
   APPLE_SERVICE_ID: z.string().min(1, 'APPLE_SERVICE_ID is required').optional(),
   CORS_ORIGIN: z.string().default('*'),
+  // Email: sin RESEND_API_KEY las invitaciones solo se escriben en el log.
+  RESEND_API_KEY: z.string().min(1).optional(),
+  EMAIL_FROM: z.string().min(1).default('Gestia <onboarding@resend.dev>'),
 });
 
 const result = envSchema.safeParse(process.env);

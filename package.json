@@ -7,7 +7,7 @@
     "dev": "tsx watch src/index.ts",
     "build": "node --max-old-space-size=450 node_modules/typescript/bin/tsc",
     "start": "node dist/index.js",
-    "test": "tsx --test tests/membership.test.ts tests/push.test.ts tests/shopping.test.ts tests/recipients.test.ts tests/reminders.test.ts tests/household.test.ts tests/limiter.test.ts"
+    "test": "tsx --test tests/membership.test.ts tests/push.test.ts tests/shopping.test.ts tests/recipients.test.ts tests/reminders.test.ts tests/household.test.ts tests/limiter.test.ts tests/invitation.test.ts"
   },
   "keywords": [],
   "author": "",

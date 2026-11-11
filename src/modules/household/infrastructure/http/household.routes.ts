@@ -17,10 +17,10 @@ import { AddMemberUseCase } from '../../application/useCases/AddMemberUseCase.js
 import { RemoveMemberUseCase } from '../../application/useCases/RemoveMemberUseCase.js';
 import { RegenerateInviteCodeUseCase } from '../../application/useCases/RegenerateInviteCodeUseCase.js';
 import { SendHouseholdInvitationUseCase } from '../../application/useCases/SendHouseholdInvitationUseCase.js';
-import { LoggingEmailService } from '../../../../shared/infrastructure/email/LoggingEmailService.js';
+import { createEmailService } from '../../../../shared/infrastructure/email/createEmailService.js';
 
 const repository = new MongooseHouseholdRepository();
-const emailService = new LoggingEmailService();
+const emailService = createEmailService();
 
 // Códigos de 6 caracteres: se limitan los fallos para que no se puedan adivinar.
 const joinLimiter = new AttemptLimiter(5, 15 * 60 * 1000);

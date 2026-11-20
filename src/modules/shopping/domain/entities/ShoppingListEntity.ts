@@ -2,6 +2,9 @@ export interface ShoppingItemEntity {
   id: string;
   name: string;
   quantity: number;
+  unit?: string | null;
+  category?: string;
+  is_urgent?: boolean;
   is_completed: boolean;
   added_by: string;
   checked_by?: string | null;

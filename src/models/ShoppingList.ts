@@ -7,6 +7,7 @@ export interface IShoppingItem {
   unit: string | null;
   category: string;
   checked: boolean;
+  is_urgent: boolean;
   added_by: Types.ObjectId;
   checked_by: Types.ObjectId | null;
   added_at: Date;
@@ -38,6 +39,7 @@ const shoppingItemSchema = new Schema<IShoppingItem>({
   unit: { type: String, default: null },
   category: { type: String, required: true },
   checked: { type: Boolean, default: false },
+  is_urgent: { type: Boolean, default: false },
   added_by: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   checked_by: { type: Schema.Types.ObjectId, ref: 'User', default: null },
   added_at: { type: Date, default: Date.now }

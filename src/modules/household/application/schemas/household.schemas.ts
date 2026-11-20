@@ -46,6 +46,11 @@ export const UpdateHouseholdInputSchema = t.Object({
   }))
 });
 
+export const RegenerateInviteCodeInputSchema = t.Object({
+  householdId: t.String(),
+  userId: t.String(),
+});
+
 export const AddMemberInputSchema = t.Object({
   inviteCode: t.String(),
   userId: t.String(),

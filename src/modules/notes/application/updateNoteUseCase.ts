@@ -1,7 +1,9 @@
 import { UseCase } from '../../../shared/application/useCase.js';
 import { NoteEntity } from '../domain/entities/note.entity.js';
 import { NoteRepository } from '../domain/repositories/note.repository.js';
-import { NoteNotFoundError, NoteForbiddenError } from '../domain/errors/note.errors.js';
+import { NoteNotFoundError } from '../domain/errors/note.errors.js';
+import { GetHouseholdUseCase } from '../../household/application/useCases/GetHouseholdUseCase.js';
+import { getEditableNote } from './services/NoteAuthorization.js';
 import { updateNoteRequestSchema, noteResponseSchema } from './schemas/notes.schemas.js';
 import { t } from 'elysia';
 
@@ -19,20 +21,15 @@ export class UpdateNoteUseCase extends UseCase<any, any> {
   protected inputSchema = InputSchema as any;
   protected outputSchema = noteResponseSchema as any;
 
-  constructor(private readonly noteRepository: NoteRepository) {
+  constructor(
+    private readonly noteRepository: NoteRepository,
+    private readonly getHouseholdUseCase: GetHouseholdUseCase,
+  ) {
     super();
   }
 
   protected async implementation(data: any): Promise<any> {
-    const note = await this.noteRepository.findById(data.noteId);
-
-    if (!note) {
-      throw new NoteNotFoundError();
-    }
-
-    if (note.household_id !== data.householdId) {
-      throw new NoteForbiddenError();
-    }
+    await getEditableNote(this.noteRepository, this.getHouseholdUseCase, data.noteId, data.householdId, data.userId);
 
     const updateData: Partial<NoteEntity> = {};
     if (data.title !== undefined) updateData.title = data.title;

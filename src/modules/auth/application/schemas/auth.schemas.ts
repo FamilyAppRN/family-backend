@@ -22,6 +22,8 @@ export const refreshTokenRequestSchema = t.Object({
 
 export const pushTokenRequestSchema = t.Object({
   token: t.String({ minLength: 1, error: 'El token es requerido' }),
+  /** Modelo del equipo, para reconocer cada dispositivo. */
+  device_label: t.Optional(t.String({ maxLength: 100 })),
 });
 
 // Output Schemas para sanitización (Value.Clean)
@@ -47,6 +49,14 @@ export const authResponseSchema = t.Object({
 export const tokenResponseSchema = t.Object({
   accessToken: t.String(),
   refreshToken: t.Optional(t.String()),
+});
+
+export const googleLoginRequestSchema = t.Object({
+  idToken: t.String({ minLength: 1, error: 'El ID token de Google es requerido' }),
+});
+
+export const appleLoginRequestSchema = t.Object({
+  identityToken: t.String({ minLength: 1, error: 'El token de identidad de Apple es requerido' }),
 });
 
 export const checkEmailRequestSchema = t.Object({

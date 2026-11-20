@@ -11,6 +11,8 @@ export interface ITask extends Document {
   due_date: Date | null;
   points: number;
   completed_at: Date | null;
+  /** Cuándo se mandó el recordatorio; null = pendiente. Vuelve a null si cambia la fecha. */
+  reminder_sent_at: Date | null;
   created_at: Date;
   updated_at: Date;
   // Phase 2 gamification fields
@@ -28,6 +30,7 @@ const taskSchema = new Schema<ITask>({
   due_date: { type: Date, default: null },
   points: { type: Number, default: 0 },
   completed_at: { type: Date, default: null },
+  reminder_sent_at: { type: Date, default: null },
   reward_label: { type: String, default: null },
   claimed_at: { type: Date, default: null }
 }, {

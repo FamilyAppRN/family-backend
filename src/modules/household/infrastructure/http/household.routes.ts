@@ -1,4 +1,10 @@
 import { Elysia, t } from 'elysia';
+import { emitHouseholdUpdated, emitMemberRemoved } from '../../../../sockets/emitter.js';
+import { notifyGoingShopping, notifyMemberJoined } from '../../../../shared/push/triggers.js';
+import { assertHouseholdMembership } from '../../application/services/HouseholdMembership.js';
+import { AttemptLimiter } from '../../../../shared/infrastructure/http/AttemptLimiter.js';
+import { ApplicationError } from '../../../../shared/domain/error.js';
+import { InvalidInviteCodeError } from '../../domain/errors/HouseholdErrors.js';
 import { authMiddleware } from '../../../../middleware/auth.middleware.js';
 import { ApiResponse } from '../../../../shared/infrastructure/http/responseFormatter.js';
 import { swaggerSuccess, swaggerError, standardAuthErrors, standardValidationErrors, standardNotFoundErrors, customHouseholdErrors } from '../../../../shared/infrastructure/http/swaggerResponses.js';
@@ -9,11 +15,15 @@ import { GetHouseholdUseCase } from '../../application/useCases/GetHouseholdUseC
 import { UpdateHouseholdUseCase } from '../../application/useCases/UpdateHouseholdUseCase.js';
 import { AddMemberUseCase } from '../../application/useCases/AddMemberUseCase.js';
 import { RemoveMemberUseCase } from '../../application/useCases/RemoveMemberUseCase.js';
+import { RegenerateInviteCodeUseCase } from '../../application/useCases/RegenerateInviteCodeUseCase.js';
 import { SendHouseholdInvitationUseCase } from '../../application/useCases/SendHouseholdInvitationUseCase.js';
-import { LoggingEmailService } from '../../../../shared/infrastructure/email/LoggingEmailService.js';
+import { createEmailService } from '../../../../shared/infrastructure/email/createEmailService.js';
 
 const repository = new MongooseHouseholdRepository();
-const emailService = new LoggingEmailService();
+const emailService = createEmailService();
+
+// Códigos de 6 caracteres: se limitan los fallos para que no se puedan adivinar.
+const joinLimiter = new AttemptLimiter(5, 15 * 60 * 1000);
 
 export const householdRoutes = new Elysia({ prefix: '/households', detail: { tags: ['Households'] } })
   .use(authMiddleware)
@@ -79,6 +89,7 @@ export const householdRoutes = new Elysia({ prefix: '/households', detail: { tag
         settings: (body as any).settings
     };
     const result = await useCase.execute(data);
+    emitHouseholdUpdated(params.householdId, 'household', user.id);
     const response = ApiResponse.success(result, "Hogar actualizado");
     set.status = response.status;
     return response.body;
@@ -103,13 +114,29 @@ export const householdRoutes = new Elysia({ prefix: '/households', detail: { tag
   })
 
   .post('/join', async ({ body, user, set }: any) => {
+    if (joinLimiter.isBlocked(user.id)) {
+        throw new ApplicationError(429, 'Demasiados códigos incorrectos. Espera unos minutos e inténtalo de nuevo.', 'TOO_MANY_JOIN_ATTEMPTS', 'BUSINESS');
+    }
     const useCase = new AddMemberUseCase(repository);
     const data = {
         inviteCode: (body as any).inviteCode,
         userId: user.id,
         userName: user.name
     };
-    const result = await useCase.execute(data);
+    let result;
+    try {
+        result = await useCase.execute(data);
+    } catch (error) {
+        if (error instanceof InvalidInviteCodeError) joinLimiter.recordFailure(user.id);
+        throw error;
+    }
+    joinLimiter.reset(user.id);
+    emitHouseholdUpdated((result as any)?.id, 'household', user.id);
+    void notifyMemberJoined(
+      (result as any)?.id,
+      ((result as any)?.members ?? []).map((member: { user_id: string }) => member.user_id),
+      user,
+    );
     const response = ApiResponse.success(result, "Te has unido al hogar");
     set.status = response.status;
     return response.body;
@@ -156,6 +183,44 @@ export const householdRoutes = new Elysia({ prefix: '/households', detail: { tag
     }
   })
 
+  .post('/:householdId/invite-code/regenerate', async ({ params, user, set }: any) => {
+    const result = await new RegenerateInviteCodeUseCase(repository).execute({
+      householdId: params.householdId,
+      userId: user.id,
+    });
+    emitHouseholdUpdated(params.householdId, 'household', user.id);
+    const response = ApiResponse.success(result, "Código de invitación renovado");
+    set.status = response.status;
+    return response.body;
+  }, {
+      detail: {
+          summary: 'Generar un código de invitación nuevo (el anterior deja de servir)',
+          responses: {
+              '200': swaggerSuccess("Código de invitación renovado", { id: "hh-123", invite_code: "7F3A9C" }),
+              '404': customHouseholdErrors.notFound,
+              '403': customHouseholdErrors.notAdmin,
+              ...standardAuthErrors
+          }
+      }
+  })
+
+  .post('/:householdId/going-shopping', async ({ params, user, set }: any) => {
+    await assertHouseholdMembership(new GetHouseholdUseCase(repository), params.householdId, user.id);
+    void notifyGoingShopping(params.householdId, user);
+    const response = ApiResponse.success(null, "Aviso enviado al hogar", 202);
+    set.status = response.status;
+    return response.body;
+  }, {
+      detail: {
+          summary: 'Avisar al hogar que vas al supermercado',
+          responses: {
+              '202': swaggerSuccess("Aviso enviado al hogar", null),
+              '404': customHouseholdErrors.notFound,
+              ...standardAuthErrors
+          }
+      }
+  })
+
   .delete('/:householdId/members/:targetUserId', async ({ params, user, set }: any) => {
     const useCase = new RemoveMemberUseCase(repository);
     const data = {
@@ -164,6 +229,8 @@ export const householdRoutes = new Elysia({ prefix: '/households', detail: { tag
         targetUserId: params.targetUserId
     };
     const result = await useCase.execute(data);
+    emitHouseholdUpdated(params.householdId, 'household', user.id);
+    await emitMemberRemoved(params.householdId, params.targetUserId, user.id);
     const response = ApiResponse.success(result, "Miembro eliminado del hogar");
     set.status = response.status;
     return response.body;

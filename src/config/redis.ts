@@ -8,6 +8,10 @@ export function connectRedis(): Redis {
     return redis;
   }
 
+  if (!ENV.REDIS_URI) {
+    throw new Error('REDIS_URI no está configurada.');
+  }
+
   console.log('Connecting to Redis...');
   redis = new Redis(ENV.REDIS_URI, {
     maxRetriesPerRequest: 3,

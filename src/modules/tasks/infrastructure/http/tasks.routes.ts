@@ -1,4 +1,6 @@
 import { Elysia } from 'elysia';
+import { emitHouseholdUpdated } from '../../../../sockets/emitter.js';
+import { notifyTaskAssigned } from '../../../../shared/push/triggers.js';
 import { authMiddleware } from '../../../../middleware/auth.middleware.js';
 
 import { MongooseTaskRepository } from '../persistence/MongooseTaskRepository.js';
@@ -6,28 +8,40 @@ import { CreateTaskUseCase } from '../../application/useCases/createTaskUseCase.
 import { ListTasksUseCase } from '../../application/useCases/listTasksUseCase.js';
 import { UpdateTaskStatusUseCase } from '../../application/useCases/updateTaskStatusUseCase.js';
 import { AssignTaskUseCase } from '../../application/useCases/assignTaskUseCase.js';
+import { UpdateTaskUseCase } from '../../application/useCases/updateTaskUseCase.js';
 import { DeleteTaskUseCase } from '../../application/useCases/deleteTaskUseCase.js';
+import { MongooseHouseholdRepository } from '../../../household/infrastructure/persistence/MongooseHouseholdRepository.js';
+import { GetHouseholdUseCase } from '../../../household/application/useCases/GetHouseholdUseCase.js';
 import {
     CreateTaskInputSchema,
-    ListTasksInputSchema,
-    UpdateTaskStatusInputSchema,
-    AssignTaskInputSchema,
-    DeleteTaskInputSchema
+    ListTasksQuerySchema,
+    UpdateTaskStatusBodySchema,
+    AssignTaskBodySchema,
+    UpdateTaskBodySchema
 } from '../../application/schemas/tasks.schemas.js';
 import { ApiResponse } from '../../../../shared/infrastructure/http/responseFormatter.js';
 import { swaggerSuccess, standardAuthErrors, standardValidationErrors, standardNotFoundErrors, customTaskErrors } from '../../../../shared/infrastructure/http/swaggerResponses.js';
 
+const taskRepository = new MongooseTaskRepository();
+const getHouseholdUseCase = new GetHouseholdUseCase(new MongooseHouseholdRepository());
+
+const createTaskUseCase = new CreateTaskUseCase(taskRepository, getHouseholdUseCase);
+const listTasksUseCase = new ListTasksUseCase(taskRepository, getHouseholdUseCase);
+const updateTaskStatusUseCase = new UpdateTaskStatusUseCase(taskRepository, getHouseholdUseCase);
+const assignTaskUseCase = new AssignTaskUseCase(taskRepository, getHouseholdUseCase);
+const updateTaskUseCase = new UpdateTaskUseCase(taskRepository, getHouseholdUseCase);
+const deleteTaskUseCase = new DeleteTaskUseCase(taskRepository, getHouseholdUseCase);
+
 export const tasksRoutes = new Elysia({ prefix: '/tasks' })
     .use(authMiddleware)
     .post('/', async ({ body, user, set }: any) => {
-        const repo = new MongooseTaskRepository();
-        const useCase = new CreateTaskUseCase(repo);
-
-        const result = await useCase.execute({
+        const result = await createTaskUseCase.execute({
             ...body,
             creator_id: user.id
         });
 
+        emitHouseholdUpdated(result?.household_id, 'tasks', user.id);
+        void notifyTaskAssigned(result, user);
         const response = ApiResponse.success(result, "Task created successfully", 201);
         set.status = response.status;
         return response.body;
@@ -43,17 +57,14 @@ export const tasksRoutes = new Elysia({ prefix: '/tasks' })
             }
         }
     })
-    .get('/', async ({ query, set }) => {
-        const repo = new MongooseTaskRepository();
-        const useCase = new ListTasksUseCase(repo);
-
-        const result = await useCase.execute(query);
+    .get('/', async ({ query, user, set }: any) => {
+        const result = await listTasksUseCase.execute({ ...query, user_id: user.id });
 
         const response = ApiResponse.success(result, "Tasks retrieved successfully", 200);
         set.status = response.status;
         return response.body;
     }, {
-        query: ListTasksInputSchema,
+        query: ListTasksQuerySchema,
         detail: { 
             tags: ['Tasks'], 
             summary: 'List tasks',
@@ -64,17 +75,38 @@ export const tasksRoutes = new Elysia({ prefix: '/tasks' })
             }
         }
     })
-    .patch('/:id/status', async ({ params: { id }, body, set }) => {
-        const repo = new MongooseTaskRepository();
-        const useCase = new UpdateTaskStatusUseCase(repo);
+    .patch('/:id', async ({ params: { id }, body, user, set }: any) => {
+        // Se lee antes para saber si el asignado cambia de verdad.
+        const previous = body.assignee_id !== undefined ? await taskRepository.findById(id) : null;
+        const result = await updateTaskUseCase.execute({ ...body, id, user_id: user.id });
+        if (body.assignee_id !== undefined) void notifyTaskAssigned(result, user, previous?.assignee_id);
 
-        const result = await useCase.execute({ id, ...(body as any) });
+        emitHouseholdUpdated(result?.household_id, 'tasks', user.id);
+        const response = ApiResponse.success(result, "Task updated successfully", 200);
+        set.status = response.status;
+        return response.body;
+    }, {
+        body: UpdateTaskBodySchema,
+        detail: {
+            tags: ['Tasks'],
+            summary: 'Update task title, description, due date or assignee',
+            responses: {
+                '200': swaggerSuccess("Task updated successfully", { id: "task-123", title: "Wash clothes", due_date: "2026-11-10T16:30:00.000Z" }),
+                ...standardValidationErrors,
+                '404': customTaskErrors.notFound,
+                ...standardAuthErrors
+            }
+        }
+    })
+    .patch('/:id/status', async ({ params: { id }, body, user, set }: any) => {
+        const result = await updateTaskStatusUseCase.execute({ id, user_id: user.id, status: body.status });
 
+        emitHouseholdUpdated(result?.household_id, 'tasks', user.id);
         const response = ApiResponse.success(result, "Task status updated successfully", 200);
         set.status = response.status;
         return response.body;
     }, {
-        body: UpdateTaskStatusInputSchema,
+        body: UpdateTaskStatusBodySchema,
         detail: { 
             tags: ['Tasks'], 
             summary: 'Update task status',
@@ -86,17 +118,17 @@ export const tasksRoutes = new Elysia({ prefix: '/tasks' })
             }
         }
     })
-    .patch('/:id/assign', async ({ params: { id }, body, set }) => {
-        const repo = new MongooseTaskRepository();
-        const useCase = new AssignTaskUseCase(repo);
+    .patch('/:id/assign', async ({ params: { id }, body, user, set }: any) => {
+        const previous = await taskRepository.findById(id);
+        const result = await assignTaskUseCase.execute({ id, user_id: user.id, assignee_id: body.assignee_id });
+        void notifyTaskAssigned(result, user, previous?.assignee_id);
 
-        const result = await useCase.execute({ id, ...(body as any) });
-
+        emitHouseholdUpdated(result?.household_id, 'tasks', user.id);
         const response = ApiResponse.success(result, "Task assigned successfully", 200);
         set.status = response.status;
         return response.body;
     }, {
-        body: AssignTaskInputSchema,
+        body: AssignTaskBodySchema,
         detail: { 
             tags: ['Tasks'], 
             summary: 'Assign a task to a user',
@@ -108,11 +140,11 @@ export const tasksRoutes = new Elysia({ prefix: '/tasks' })
             }
         }
     })
-    .delete('/:id', async ({ params: { id }, set }) => {
-        const repo = new MongooseTaskRepository();
-        const useCase = new DeleteTaskUseCase(repo);
-
-        const result = await useCase.execute({ id });
+    .delete('/:id', async ({ params: { id }, user, set }: any) => {
+        // El hogar se lee antes: después de borrar ya no hay tarea que consultar.
+        const task = await taskRepository.findById(id);
+        const result = await deleteTaskUseCase.execute({ id, user_id: user.id });
+        emitHouseholdUpdated(task?.household_id, 'tasks', user.id);
 
         const response = ApiResponse.success(result, "Task deleted successfully", 200);
         set.status = response.status;

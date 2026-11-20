@@ -32,7 +32,14 @@ export const CreateTaskInputSchema = t.Object({
 
 export const CreateTaskOutputSchema = TaskSchema;
 
+export const ListTasksQuerySchema = t.Object({
+    household_id: t.String(),
+    status: t.Optional(TaskStatusSchema),
+    assignee_id: t.Optional(t.String())
+});
+
 export const ListTasksInputSchema = t.Object({
+    user_id: t.String(),
     household_id: t.String(),
     status: t.Optional(TaskStatusSchema),
     assignee_id: t.Optional(t.String())
@@ -40,21 +47,52 @@ export const ListTasksInputSchema = t.Object({
 
 export const ListTasksOutputSchema = t.Array(TaskSchema);
 
+export const UpdateTaskStatusBodySchema = t.Object({
+    status: TaskStatusSchema
+});
+
 export const UpdateTaskStatusInputSchema = t.Object({
+    user_id: t.String(),
     id: t.String(),
     status: TaskStatusSchema
 });
 
 export const UpdateTaskStatusOutputSchema = TaskSchema;
 
+export const AssignTaskBodySchema = t.Object({
+    assignee_id: t.String()
+});
+
 export const AssignTaskInputSchema = t.Object({
+    user_id: t.String(),
     id: t.String(),
     assignee_id: t.String()
 });
 
 export const AssignTaskOutputSchema = TaskSchema;
 
+const NullableString = t.Union([t.String(), t.Null()]);
+
+export const UpdateTaskBodySchema = t.Object({
+    title: t.Optional(t.String({ minLength: 1 })),
+    description: t.Optional(NullableString),
+    due_date: t.Optional(NullableString),
+    assignee_id: t.Optional(NullableString)
+});
+
+export const UpdateTaskInputSchema = t.Object({
+    user_id: t.String(),
+    id: t.String(),
+    title: t.Optional(t.String({ minLength: 1 })),
+    description: t.Optional(NullableString),
+    due_date: t.Optional(NullableString),
+    assignee_id: t.Optional(NullableString)
+});
+
+export const UpdateTaskOutputSchema = TaskSchema;
+
 export const DeleteTaskInputSchema = t.Object({
+    user_id: t.String(),
     id: t.String()
 });
 

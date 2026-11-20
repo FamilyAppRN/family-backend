@@ -8,5 +8,7 @@ export interface HouseholdRepository {
     update(id: string, data: Partial<Pick<HouseholdEntity, 'name' | 'settings'>>): Promise<HouseholdEntity>;
     addMember(id: string, member: HouseholdMemberEntity): Promise<HouseholdEntity>;
     removeMember(id: string, userId: string): Promise<HouseholdEntity>;
+    /** Cambia el código; falla con error de duplicado si ya existe otro igual. */
+    setInviteCode(id: string, inviteCode: string): Promise<HouseholdEntity>;
     delete(id: string): Promise<void>;
 }

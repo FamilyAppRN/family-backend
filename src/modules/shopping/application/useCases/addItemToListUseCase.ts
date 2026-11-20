@@ -20,6 +20,9 @@ export class AddItemToListUseCase extends UseCase<TInput, TShoppingList> {
         return await this.shoppingRepository.addItemToList(data.list_id, {
             name: data.name,
             quantity: data.quantity,
+            unit: data.unit ?? null,
+            category: data.category,
+            is_urgent: data.is_urgent ?? false,
             added_by: data.added_by
         });
     }

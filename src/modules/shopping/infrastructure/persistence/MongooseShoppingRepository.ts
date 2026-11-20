@@ -11,6 +11,9 @@ export class MongooseShoppingRepository implements ShoppingRepository {
       id: item._id.toString(),
       name: item.name,
       quantity: item.qty,
+      unit: item.unit ?? null,
+      category: item.category,
+      is_urgent: item.is_urgent ?? false,
       is_completed: item.checked,
       added_by: item.added_by.toString(),
       checked_by: item.checked_by ? item.checked_by.toString() : null
@@ -37,6 +40,9 @@ export class MongooseShoppingRepository implements ShoppingRepository {
         id: item._id.toString(),
         name: item.name,
         quantity: item.qty,
+        unit: item.unit ?? null,
+        category: item.category,
+        is_urgent: item.is_urgent ?? false,
         is_completed: true,
         added_by: item.added_by.toString(),
         checked_by: item.checked_by ? item.checked_by.toString() : null,
@@ -88,7 +94,10 @@ export class MongooseShoppingRepository implements ShoppingRepository {
             _id: new Types.ObjectId(),
             name: item.name,
             qty: item.quantity,
-            category: 'general', // Defaulting category as it is required in Mongoose schema
+            unit: item.unit ?? null,
+            // El modelo la exige; los ítems viejos o sin categoría quedan en 'general'.
+            category: item.category || 'general',
+            is_urgent: item.is_urgent ?? false,
             added_by: new Types.ObjectId(item.added_by),
             added_at: new Date()
           }

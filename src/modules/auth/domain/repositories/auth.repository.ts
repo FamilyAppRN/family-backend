@@ -7,5 +7,5 @@ export interface AuthRepository {
   create(user: Partial<UserEntity>): Promise<UserEntity>;
   update(id: string, data: Partial<UserEntity>): Promise<UserEntity>;
   deletePushToken(userId: string, token: string): Promise<void>;
-  addPushToken(userId: string, token: string): Promise<void>;
+  addPushToken(userId: string, token: string, deviceLabel?: string): Promise<void>;
 }

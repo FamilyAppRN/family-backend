@@ -78,7 +78,7 @@ export const meProfileInputSchema = t.Object({
 export const meHouseholdSchema = t.Object({
   id: t.String(),
   name: t.String(),
-  role: t.Union([t.Literal('admin'), t.Literal('member')]),
+  role: t.Union([t.Literal('admin'), t.Literal('member'), t.Literal('kid')]),
   is_owner: t.Boolean(),
   invite_code: t.Optional(t.Union([t.String(), t.Null()])),
   members_count: t.Number(),

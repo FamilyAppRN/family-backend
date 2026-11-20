@@ -1,5 +1,6 @@
 import { TaskRepository } from '../../domain/repositories/TaskRepository.js';
 import { TaskEntity } from '../../domain/entities/TaskEntity.js';
+import { Types } from 'mongoose';
 import { Task, ITask } from '../../../../models/Task.js';
 
 export class MongooseTaskRepository implements TaskRepository {
@@ -13,6 +14,8 @@ export class MongooseTaskRepository implements TaskRepository {
             description: doc.description,
             status: doc.status,
             due_date: doc.due_date,
+            points: doc.points ?? 0,
+            completed_at: doc.completed_at ?? null,
             created_at: doc.created_at,
             updated_at: doc.updated_at
         };
@@ -40,7 +43,9 @@ export class MongooseTaskRepository implements TaskRepository {
     }
 
     async updateStatus(id: string, status: TaskEntity['status']): Promise<TaskEntity | null> {
-        const updatedTask = await Task.findByIdAndUpdate(id, { status }, { new: true }).lean();
+        // completed_at marca cuándo se completó: cuenta para los puntos.
+        const completed_at = status === 'completed' ? new Date() : null;
+        const updatedTask = await Task.findByIdAndUpdate(id, { status, completed_at }, { new: true }).lean();
         if (!updatedTask) return null;
         return this.mapToEntity(updatedTask);
     }
@@ -51,7 +56,22 @@ export class MongooseTaskRepository implements TaskRepository {
         return this.mapToEntity(updatedTask);
     }
 
-    async update(id: string, data: Partial<Pick<TaskEntity, 'title' | 'description' | 'due_date' | 'assignee_id'>>): Promise<TaskEntity | null> {
+    async sumPointsByAssignee(household_id: string, since?: Date): Promise<{ user_id: string; points: number }[]> {
+        const match: Record<string, unknown> = {
+            household_id: new Types.ObjectId(household_id),
+            status: 'completed',
+            points: { $gt: 0 },
+            assignee_id: { $ne: null },
+        };
+        if (since) match.completed_at = { $gte: since };
+        const rows = await Task.aggregate([
+            { $match: match },
+            { $group: { _id: '$assignee_id', points: { $sum: '$points' } } },
+        ]);
+        return rows.map((row) => ({ user_id: row._id.toString(), points: row.points }));
+    }
+
+    async update(id: string, data: Partial<Pick<TaskEntity, 'title' | 'description' | 'due_date' | 'assignee_id' | 'points'>>): Promise<TaskEntity | null> {
         // Si cambia la fecha, la tarea puede recordarse otra vez.
         const changes = 'due_date' in data ? { ...data, reminder_sent_at: null } : data;
         const updatedTask = await Task.findByIdAndUpdate(id, changes, { new: true }).lean();

@@ -9,6 +9,7 @@ import { householdRoutes } from './modules/household/infrastructure/http/househo
 import { shoppingRoutes } from './modules/shopping/infrastructure/http/shopping.routes.js';
 import { tasksRoutes } from './modules/tasks/infrastructure/http/tasks.routes.js';
 import { notesRoutes } from './modules/notes/infrastructure/http/notes.routes.js';
+import { calendarRoutes } from './modules/calendar/infrastructure/http/calendar.routes.js';
 import { ApiResponse } from './shared/infrastructure/http/responseFormatter.js';
 import { ApplicationError } from './shared/domain/error.js';
 
@@ -47,5 +48,6 @@ export const app = new Elysia({ adapter: node() })
       .use(shoppingRoutes)
       .use(tasksRoutes)
       .use(notesRoutes)
+      .use(calendarRoutes)
   );
 export type App = typeof app;

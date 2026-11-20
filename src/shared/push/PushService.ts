@@ -3,7 +3,13 @@ import { User } from '../../models/User.js';
 import logger from '../infrastructure/logger.js';
 
 /** Qué abre la app al tocar el aviso. Viaja en `data` (FCM solo admite strings). */
-export type PushType = 'task_assigned' | 'task_reminder' | 'urgent_item' | 'going_shopping' | 'member_joined';
+export type PushType =
+  | 'task_assigned'
+  | 'task_reminder'
+  | 'task_verify'
+  | 'urgent_item'
+  | 'going_shopping'
+  | 'member_joined';
 
 export interface PushMessage {
   title: string;

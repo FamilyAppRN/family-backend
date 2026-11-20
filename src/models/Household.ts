@@ -2,7 +2,7 @@ import { Schema, model, Document, Types } from 'mongoose';
 
 export interface IHouseholdMember {
   user_id: Types.ObjectId;
-  role: 'admin' | 'member';
+  role: 'admin' | 'member' | 'kid';
   display_name: string;
   joined_at: Date;
 }
@@ -24,7 +24,7 @@ export interface IHousehold extends Document {
 
 const memberSchema = new Schema<IHouseholdMember>({
   user_id: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-  role: { type: String, enum: ['admin', 'member'], required: true },
+  role: { type: String, enum: ['admin', 'member', 'kid'], required: true },
   display_name: { type: String, required: true },
   joined_at: { type: Date, default: Date.now },
 }, { _id: false });

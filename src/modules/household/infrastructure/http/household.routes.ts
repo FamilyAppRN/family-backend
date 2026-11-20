@@ -3,6 +3,8 @@ import { emitHouseholdUpdated, emitMemberRemoved } from '../../../../sockets/emi
 import { notifyGoingShopping, notifyMemberJoined } from '../../../../shared/push/triggers.js';
 import { assertHouseholdMembership } from '../../application/services/HouseholdMembership.js';
 import { AttemptLimiter } from '../../../../shared/infrastructure/http/AttemptLimiter.js';
+import { effectivePlan } from '../../domain/planPolicy.js';
+import { MongoosePlanLookup } from '../persistence/MongoosePlanLookup.js';
 import { ApplicationError } from '../../../../shared/domain/error.js';
 import { InvalidInviteCodeError } from '../../domain/errors/HouseholdErrors.js';
 import { authMiddleware } from '../../../../middleware/auth.middleware.js';
@@ -16,6 +18,7 @@ import { UpdateHouseholdUseCase } from '../../application/useCases/UpdateHouseho
 import { AddMemberUseCase } from '../../application/useCases/AddMemberUseCase.js';
 import { RemoveMemberUseCase } from '../../application/useCases/RemoveMemberUseCase.js';
 import { RegenerateInviteCodeUseCase } from '../../application/useCases/RegenerateInviteCodeUseCase.js';
+import { ChangeMemberRoleUseCase } from '../../application/useCases/ChangeMemberRoleUseCase.js';
 import { SendHouseholdInvitationUseCase } from '../../application/useCases/SendHouseholdInvitationUseCase.js';
 import { createEmailService } from '../../../../shared/infrastructure/email/createEmailService.js';
 
@@ -24,6 +27,7 @@ const emailService = createEmailService();
 
 // Códigos de 6 caracteres: se limitan los fallos para que no se puedan adivinar.
 const joinLimiter = new AttemptLimiter(5, 15 * 60 * 1000);
+const planLookup = new MongoosePlanLookup();
 
 export const householdRoutes = new Elysia({ prefix: '/households', detail: { tags: ['Households'] } })
   .use(authMiddleware)
@@ -34,7 +38,7 @@ export const householdRoutes = new Elysia({ prefix: '/households', detail: { tag
         name: (body as any).name,
         user_id: user.id,
         user_name: user.name,
-
+        plan: effectivePlan(user.plan, user.plan_expires_at),
         settings: (body as any).settings
     };
     const result = await useCase.execute(data);
@@ -65,7 +69,8 @@ export const householdRoutes = new Elysia({ prefix: '/households', detail: { tag
         householdId: params.householdId,
         userId: user.id
     });
-    const response = ApiResponse.success(result, "Detalles del hogar");
+    const isPremium = (await planLookup.planOf((result as any).admin_id)) === 'premium';
+    const response = ApiResponse.success({ ...(result as any), is_premium: isPremium }, "Detalles del hogar");
     set.status = response.status;
     return response.body;
   }, {
@@ -117,11 +122,12 @@ export const householdRoutes = new Elysia({ prefix: '/households', detail: { tag
     if (joinLimiter.isBlocked(user.id)) {
         throw new ApplicationError(429, 'Demasiados códigos incorrectos. Espera unos minutos e inténtalo de nuevo.', 'TOO_MANY_JOIN_ATTEMPTS', 'BUSINESS');
     }
-    const useCase = new AddMemberUseCase(repository);
+    const useCase = new AddMemberUseCase(repository, planLookup);
     const data = {
         inviteCode: (body as any).inviteCode,
         userId: user.id,
-        userName: user.name
+        userName: user.name,
+        plan: effectivePlan(user.plan, user.plan_expires_at)
     };
     let result;
     try {
@@ -215,6 +221,31 @@ export const householdRoutes = new Elysia({ prefix: '/households', detail: { tag
           summary: 'Avisar al hogar que vas al supermercado',
           responses: {
               '202': swaggerSuccess("Aviso enviado al hogar", null),
+              '404': customHouseholdErrors.notFound,
+              ...standardAuthErrors
+          }
+      }
+  })
+
+  .patch('/:householdId/members/:targetUserId/role', async ({ params, body, user, set }: any) => {
+    const result = await new ChangeMemberRoleUseCase(repository, planLookup).execute({
+      householdId: params.householdId,
+      requestingUserId: user.id,
+      targetUserId: params.targetUserId,
+      role: body.role,
+    });
+    emitHouseholdUpdated(params.householdId, 'household', user.id);
+    const response = ApiResponse.success(result, "Rol actualizado");
+    set.status = response.status;
+    return response.body;
+  }, {
+      body: t.Object({ role: t.Union([t.Literal('admin'), t.Literal('member'), t.Literal('kid')]) }),
+      detail: {
+          summary: 'Cambiar el rol de un miembro (solo admin; Niño requiere hogar Premium)',
+          responses: {
+              '200': swaggerSuccess("Rol actualizado", { id: "hh-123" }),
+              ...standardValidationErrors,
+              '403': customHouseholdErrors.notAdmin,
               '404': customHouseholdErrors.notFound,
               ...standardAuthErrors
           }

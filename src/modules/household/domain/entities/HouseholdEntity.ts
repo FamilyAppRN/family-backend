@@ -1,6 +1,6 @@
 export interface HouseholdMemberEntity {
   user_id: string;
-  role: 'admin' | 'member';
+  role: 'admin' | 'member' | 'kid';
   display_name: string;
   joined_at: Date;
 }

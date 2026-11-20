@@ -93,6 +93,16 @@ export class MongooseHouseholdRepository implements HouseholdRepository {
         return this.mapToEntity(household);
     }
 
+    async setMemberRole(id: string, userId: string, role: HouseholdMemberEntity['role']): Promise<HouseholdEntity> {
+        const doc = await Household.findOneAndUpdate(
+            { _id: id, 'members.user_id': userId },
+            { $set: { 'members.$.role': role } },
+            { new: true }
+        ).lean();
+        if (!doc) throw new HouseholdNotFoundError();
+        return this.mapToEntity(doc);
+    }
+
     async delete(id: string): Promise<void> {
         await Household.findByIdAndDelete(id);
     }

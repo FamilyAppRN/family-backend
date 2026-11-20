@@ -4,6 +4,7 @@ import { HouseholdRepository } from '../../domain/repositories/HouseholdReposito
 import { CreateHouseholdInputSchema, HouseholdSchema } from '../schemas/household.schemas.js';
 import { Static } from '@sinclair/typebox';
 import { generateInviteCode } from '../../domain/services/inviteCode.js';
+import { assertCanCreateHousehold } from '../../domain/planPolicy.js';
 
 type Input = Static<typeof CreateHouseholdInputSchema>;
 type Output = Static<typeof HouseholdSchema>;
@@ -17,6 +18,10 @@ export class CreateHouseholdUseCase extends UseCase<any, any> {
     }
 
     protected async implementation(data: Input): Promise<Output> {
+        const households = await this.repository.findByUserId(data.user_id);
+        const owned = households.filter((h) => h.admin_id === data.user_id).length;
+        assertCanCreateHousehold(data.plan ?? 'free', owned);
+
         // Generate a random 6-character invite code
         const inviteCode = generateInviteCode();
 

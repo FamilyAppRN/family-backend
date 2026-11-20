@@ -10,5 +10,6 @@ export interface HouseholdRepository {
     removeMember(id: string, userId: string): Promise<HouseholdEntity>;
     /** Cambia el código; falla con error de duplicado si ya existe otro igual. */
     setInviteCode(id: string, inviteCode: string): Promise<HouseholdEntity>;
+    setMemberRole(id: string, userId: string, role: HouseholdMemberEntity['role']): Promise<HouseholdEntity>;
     delete(id: string): Promise<void>;
 }

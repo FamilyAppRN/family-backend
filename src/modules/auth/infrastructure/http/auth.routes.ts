@@ -13,6 +13,7 @@ import { GoogleLoginUseCase } from '../../application/googleLoginUseCase.js';
 import { AppleLoginUseCase } from '../../application/appleLoginUseCase.js';
 import { MongooseAuthRepository } from '../persistence/MongooseAuthRepository.js';
 import { MongooseHouseholdRepository } from '../../../household/infrastructure/persistence/MongooseHouseholdRepository.js';
+import { MongoosePlanLookup } from '../../../household/infrastructure/persistence/MongoosePlanLookup.js';
 import {
     registerRequestSchema,
     loginRequestSchema,
@@ -202,7 +203,7 @@ export const authRoutes = new Elysia({ detail: { tags: ['Auth'] } })
                 const { user, set } = ctx;
                 const authRepository = new MongooseAuthRepository();
                 const householdRepository = new MongooseHouseholdRepository();
-                const getUserHouseholdsUseCase = new GetUserHouseholdsUseCase(householdRepository);
+                const getUserHouseholdsUseCase = new GetUserHouseholdsUseCase(householdRepository, new MongoosePlanLookup());
                 const useCase = new GetMeProfileUseCase(authRepository, getUserHouseholdsUseCase);
                 const result = await useCase.execute({ userId: user.id });
                 

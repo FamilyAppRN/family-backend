@@ -57,3 +57,19 @@ export async function notifyMemberJoined(householdId: string, memberIds: string[
     data: { type: 'member_joined', householdId },
   });
 }
+
+/** Un niño completó una tarea con puntos: los admins tienen que verificarla. */
+export async function notifyTaskNeedsVerification(
+  task: { id: string; household_id: string; title: string; points?: number },
+  kid: Actor,
+): Promise<void> {
+  const household = await Household.findById(task.household_id, { members: 1 }).lean();
+  const admins = (household?.members ?? [])
+    .filter((member) => member.role === 'admin')
+    .map((member) => member.user_id.toString());
+  await pushService.sendToUsers(otherMembers(admins, kid.id), {
+    title: 'Tarea por verificar',
+    body: `¡${kid.name} completó "${task.title}"! Verifícala para darle ${task.points ?? 0} puntos.`,
+    data: { type: 'task_verify', householdId: task.household_id, taskId: task.id },
+  });
+}

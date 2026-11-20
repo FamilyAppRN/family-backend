@@ -4,6 +4,7 @@ import { t } from 'elysia';
 export const TaskStatusSchema = t.Union([
     t.Literal('pending'),
     t.Literal('in_progress'),
+    t.Literal('waiting_verification'),
     t.Literal('completed')
 ]);
 
@@ -16,6 +17,8 @@ export const TaskSchema = t.Object({
     description: t.Optional(t.Union([t.String(), t.Null()])),
     status: TaskStatusSchema,
     due_date: t.Optional(t.Union([t.Any(), t.Null()])), // Assuming it will be parsed as Date or string
+    points: t.Optional(t.Number()),
+    completed_at: t.Optional(t.Union([t.Any(), t.Null()])),
     created_at: t.Any(),
     updated_at: t.Any()
 });
@@ -27,7 +30,9 @@ export const CreateTaskInputSchema = t.Object({
     title: t.String({ minLength: 1 }),
     description: t.Optional(t.String()),
     due_date: t.Optional(t.Any()),
-    status: t.Optional(TaskStatusSchema)
+    status: t.Optional(TaskStatusSchema),
+    /** Solo en hogares Premium. */
+    points: t.Optional(t.Integer({ minimum: 0, maximum: 1000 }))
 });
 
 export const CreateTaskOutputSchema = TaskSchema;
@@ -77,8 +82,32 @@ export const UpdateTaskBodySchema = t.Object({
     title: t.Optional(t.String({ minLength: 1 })),
     description: t.Optional(NullableString),
     due_date: t.Optional(NullableString),
-    assignee_id: t.Optional(NullableString)
+    assignee_id: t.Optional(NullableString),
+    points: t.Optional(t.Integer({ minimum: 0, maximum: 1000 }))
 });
+
+export const VerifyTaskBodySchema = t.Object({
+    /** true aprueba (suma los puntos); false la devuelve a pendiente. */
+    approve: t.Boolean()
+});
+
+export const VerifyTaskInputSchema = t.Object({
+    user_id: t.String(),
+    id: t.String(),
+    approve: t.Boolean()
+});
+
+export const PointsSummaryInputSchema = t.Object({
+    user_id: t.String(),
+    household_id: t.String(),
+    /** ISO 8601. Solo puntos de tareas completadas desde esta fecha. */
+    from: t.Optional(t.String())
+});
+
+export const PointsSummaryOutputSchema = t.Array(t.Object({
+    user_id: t.String(),
+    points: t.Number()
+}));
 
 export const UpdateTaskInputSchema = t.Object({
     user_id: t.String(),
@@ -86,7 +115,8 @@ export const UpdateTaskInputSchema = t.Object({
     title: t.Optional(t.String({ minLength: 1 })),
     description: t.Optional(NullableString),
     due_date: t.Optional(NullableString),
-    assignee_id: t.Optional(NullableString)
+    assignee_id: t.Optional(NullableString),
+    points: t.Optional(t.Integer({ minimum: 0, maximum: 1000 }))
 });
 
 export const UpdateTaskOutputSchema = TaskSchema;

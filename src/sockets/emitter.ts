@@ -4,7 +4,7 @@ import type { SocketData } from './auth.js';
 import logger from '../shared/infrastructure/logger.js';
 
 /** Qué parte del hogar cambió; la app recarga solo esa. */
-export type HouseholdScope = 'shopping' | 'tasks' | 'notes' | 'household';
+export type HouseholdScope = 'shopping' | 'tasks' | 'notes' | 'calendar' | 'household';
 
 export interface HouseholdUpdatedEvent {
   householdId: string;

@@ -1,6 +1,6 @@
-import { Elysia } from 'elysia';
+import { Elysia, t } from 'elysia';
 import { emitHouseholdUpdated } from '../../../../sockets/emitter.js';
-import { notifyTaskAssigned } from '../../../../shared/push/triggers.js';
+import { notifyTaskAssigned, notifyTaskNeedsVerification } from '../../../../shared/push/triggers.js';
 import { authMiddleware } from '../../../../middleware/auth.middleware.js';
 
 import { MongooseTaskRepository } from '../persistence/MongooseTaskRepository.js';
@@ -10,6 +10,9 @@ import { UpdateTaskStatusUseCase } from '../../application/useCases/updateTaskSt
 import { AssignTaskUseCase } from '../../application/useCases/assignTaskUseCase.js';
 import { UpdateTaskUseCase } from '../../application/useCases/updateTaskUseCase.js';
 import { DeleteTaskUseCase } from '../../application/useCases/deleteTaskUseCase.js';
+import { VerifyTaskUseCase } from '../../application/useCases/verifyTaskUseCase.js';
+import { PointsSummaryUseCase } from '../../application/useCases/pointsSummaryUseCase.js';
+import { MongoosePlanLookup } from '../../../household/infrastructure/persistence/MongoosePlanLookup.js';
 import { MongooseHouseholdRepository } from '../../../household/infrastructure/persistence/MongooseHouseholdRepository.js';
 import { GetHouseholdUseCase } from '../../../household/application/useCases/GetHouseholdUseCase.js';
 import {
@@ -17,7 +20,8 @@ import {
     ListTasksQuerySchema,
     UpdateTaskStatusBodySchema,
     AssignTaskBodySchema,
-    UpdateTaskBodySchema
+    UpdateTaskBodySchema,
+    VerifyTaskBodySchema
 } from '../../application/schemas/tasks.schemas.js';
 import { ApiResponse } from '../../../../shared/infrastructure/http/responseFormatter.js';
 import { swaggerSuccess, standardAuthErrors, standardValidationErrors, standardNotFoundErrors, customTaskErrors } from '../../../../shared/infrastructure/http/swaggerResponses.js';
@@ -25,11 +29,14 @@ import { swaggerSuccess, standardAuthErrors, standardValidationErrors, standardN
 const taskRepository = new MongooseTaskRepository();
 const getHouseholdUseCase = new GetHouseholdUseCase(new MongooseHouseholdRepository());
 
-const createTaskUseCase = new CreateTaskUseCase(taskRepository, getHouseholdUseCase);
+const planLookup = new MongoosePlanLookup();
+const createTaskUseCase = new CreateTaskUseCase(taskRepository, getHouseholdUseCase, planLookup);
 const listTasksUseCase = new ListTasksUseCase(taskRepository, getHouseholdUseCase);
 const updateTaskStatusUseCase = new UpdateTaskStatusUseCase(taskRepository, getHouseholdUseCase);
 const assignTaskUseCase = new AssignTaskUseCase(taskRepository, getHouseholdUseCase);
-const updateTaskUseCase = new UpdateTaskUseCase(taskRepository, getHouseholdUseCase);
+const updateTaskUseCase = new UpdateTaskUseCase(taskRepository, getHouseholdUseCase, planLookup);
+const verifyTaskUseCase = new VerifyTaskUseCase(taskRepository, getHouseholdUseCase);
+const pointsSummaryUseCase = new PointsSummaryUseCase(taskRepository, getHouseholdUseCase);
 const deleteTaskUseCase = new DeleteTaskUseCase(taskRepository, getHouseholdUseCase);
 
 export const tasksRoutes = new Elysia({ prefix: '/tasks' })
@@ -98,10 +105,34 @@ export const tasksRoutes = new Elysia({ prefix: '/tasks' })
             }
         }
     })
+    .get('/points', async ({ query, user, set }: any) => {
+        const result = await pointsSummaryUseCase.execute({
+            household_id: query.household_id,
+            user_id: user.id,
+            ...(query.from ? { from: query.from } : {}),
+        });
+        const response = ApiResponse.success(result, "Points summary", 200);
+        set.status = response.status;
+        return response.body;
+    }, {
+        query: t.Object({ household_id: t.String(), from: t.Optional(t.String()) }),
+        detail: { tags: ['Tasks'], summary: 'Puntos por miembro del hogar (con from: solo desde esa fecha)', responses: { ...standardAuthErrors } }
+    })
+    .post('/:id/verify', async ({ params: { id }, body, user, set }: any) => {
+        const result = await verifyTaskUseCase.execute({ id, user_id: user.id, approve: body.approve });
+        emitHouseholdUpdated(result?.household_id, 'tasks', user.id);
+        const response = ApiResponse.success(result, "Task verified", 200);
+        set.status = response.status;
+        return response.body;
+    }, {
+        body: VerifyTaskBodySchema,
+        detail: { tags: ['Tasks'], summary: 'Aprobar o devolver una tarea que marcó un niño (solo admin)', responses: { ...standardAuthErrors } }
+    })
     .patch('/:id/status', async ({ params: { id }, body, user, set }: any) => {
         const result = await updateTaskStatusUseCase.execute({ id, user_id: user.id, status: body.status });
 
         emitHouseholdUpdated(result?.household_id, 'tasks', user.id);
+        if (result?.status === 'waiting_verification') void notifyTaskNeedsVerification(result, user);
         const response = ApiResponse.success(result, "Task status updated successfully", 200);
         set.status = response.status;
         return response.body;

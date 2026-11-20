@@ -1,17 +1,25 @@
 import { UseCase } from '../../../../shared/application/useCase.js';
 import { HouseholdRepository } from '../../domain/repositories/HouseholdRepository.js';
 import { GetUserHouseholdsInputSchema, GetUserHouseholdsOutputSchema } from '../schemas/household.schemas.js';
+import type { PlanLookup } from '../../domain/services/PlanLookup.js';
 
 export class GetUserHouseholdsUseCase extends UseCase<any, any> {
     protected inputSchema = GetUserHouseholdsInputSchema;
     protected outputSchema = GetUserHouseholdsOutputSchema;
 
-    constructor(private householdRepository: HouseholdRepository) {
+    constructor(private householdRepository: HouseholdRepository, private planLookup?: PlanLookup) {
         super();
     }
 
     protected async implementation(data: any): Promise<any> {
         const households = await this.householdRepository.findByUserId(data.userId);
+
+        const premiumOwners = new Set<string>();
+        if (this.planLookup) {
+            for (const ownerId of new Set(households.map((h) => h.admin_id))) {
+                if ((await this.planLookup.planOf(ownerId)) === 'premium') premiumOwners.add(ownerId);
+            }
+        }
 
         return households.map(h => {
             const isOwner = h.admin_id === data.userId;
@@ -24,6 +32,7 @@ export class GetUserHouseholdsUseCase extends UseCase<any, any> {
                 is_owner: isOwner,
                 invite_code: isOwner ? h.invite_code : null,
                 members_count: h.members.length,
+                is_premium: premiumOwners.has(h.admin_id),
             };
         });
     }
